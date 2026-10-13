@@ -1,7 +1,7 @@
 # CLAUDE.md: GitGel site
 
 The public website for GitGel, the free transit app for Istanbul, Ankara and Bursa. Its job is search traffic:
-one server-rendered page per stop, line and guide in six languages, each sending people to the app.
+one server-rendered page per stop, line and guide (tr and en first, six languages later), each sending people to the app.
 The PWA lives at https://rehagorkemeyler.github.io/GitGel/ (repo `rehagorkemeyler/GitGel`), the Android app in
 `rehagorkemeyler/gitgel-native`. Read PLAN.md before doing anything: it holds the stages and the current progress.
 
@@ -41,7 +41,7 @@ Never push with a failing typecheck, lint or tests. Vercel deploys `main` automa
 | Framework | Next.js (latest stable, App Router), React, TypeScript strict |
 | Hosting | Vercel Hobby (free). Pages render on first request and are cached (ISR, daily revalidate); prerender only the most visited few hundred |
 | Data | The PWA's static JSON on GitHub Pages (`.../GitGel/data/`, `ankara/`, `bursa/`), fetched server-side and cached |
-| Languages | tr, en, ru, de, ar, fa (`dir="rtl"` for ar and fa); hreflang alternates on every page |
+| Languages | Launch with tr, en; ru, de, ar, fa come later (PLAN.md W6). Built for all six (`dir="rtl"` for ar, fa); hreflang alternates for enabled languages |
 | Map (only where needed) | MapLibre GL with OpenFreeMap tiles; no Google Maps on the site |
 | Tests | Vitest for pure logic (sentence templates, Turkish suffix helper, slugs, sitemap splitting) |
 

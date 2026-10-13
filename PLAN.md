@@ -6,7 +6,7 @@ Plan for this repo. Same stop-after-every-stage rule as gitgel-native
 ## Goal
 
 Pull search traffic with one server-rendered page per stop, per line and per guide, in six languages.
-Every page sends people to the app: "Web'de kullan" -> https://rehagorkemeyler.github.io/GitGel/ ,
+Every page sends people to the app (deep link to the same stop or line in the PWA if it supports it): "Web'de kullan" -> https://rehagorkemeyler.github.io/GitGel/ ,
 Android -> APK / Play link. Must never cost money (Vercel Hobby, free data).
 
 ##
@@ -22,6 +22,11 @@ Android -> APK / Play link. Must never cost money (Vercel Hobby, free data).
 ## Languages
 
 One set for all cities: **tr, en, ru, de, ar, fa** (ar and fa are right-to-left).
+
+**Rollout is phased (decided 13 Oct 2026):** launch with **tr + en** only (~68k URLs). Add ru, de, ar, fa
+(Stage W6) only after Search Console shows Google indexing the tr/en pages well. A new site that publishes
+200k pages at once risks most of them sitting in "crawled, not indexed". The code supports all six from W0,
+but the sitemap and hreflang list only the enabled languages (one config switch).
 
 - Istanbul tourists (2025, ministry data via secondary sources): Russia, Germany, USA/UK, Iran, Saudi Arabia/Gulf
   -> en, ru, de, fa, ar.
@@ -39,19 +44,19 @@ One set for all cities: **tr, en, ru, de, ar, fa** (ar and fa are right-to-left)
 
 Data from the PWA's GitHub Pages JSON (`https://rehagorkemeyler.github.io/GitGel/data/`, `ankara/`, `bursa/`):
 Istanbul 13,946 stops / 912 lines, Ankara 10,672 / 647, Bursa 7,535 / 400.
-~32k stops + ~2k lines, x 6 languages = ~200k URLs. Do not prerender all at build: render on first request,
+~32k stops + ~2k lines, x 2 languages at launch = ~68k URLs (~200k with all six). Do not prerender all at build: render on first request,
 cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 50k URLs each.
 
 ## Stages
 
 ### Stage W0: skeleton and deploy
-- [ ] Next.js (App Router, TypeScript strict), `/[lang]` routing for the six languages, `dir="rtl"` for ar/fa
+- [ ] Next.js (App Router, TypeScript strict), `/[lang]` routing built for all six languages (only tr, en enabled), `dir="rtl"` support for ar/fa
 - [ ] Home page per language: short pitch, "Web'de kullan" (PWA link), Android download, city picker
 - [ ] Deployed on Vercel from the repo (Görkem connects it), `*.vercel.app` URL works
 
 ### Stage W1: stop pages (the main traffic source)
 - [ ] Build-time and ISR data loader for the three cities from the PWA JSON (cached, calm fallback if Pages is down)
-- [ ] URL: `/[lang]/[city]/stop/[code]-[slug]`, canonical + hreflang alternates for all six languages
+- [ ] URL: `/[lang]/[city]/stop/[code]-[slug]`, canonical + hreflang alternates for the enabled languages
 - [ ] Template: title/description pattern, lines at this stop, direction, opposite-direction stop and distance,
       first/last departures (weekday, "tarifeye göre"), nearby stops, app buttons, JSON-LD BusStop + Breadcrumb
 - [ ] Sentence templates in Turkish first (correct suffixes: durağından/durağına, vowel harmony helper with tests)
@@ -61,9 +66,8 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 - [ ] Line page: route, stops in order both directions, departure times, JSON-LD ItemList
 - [ ] Line list per city, stop search page, internal links between stops and lines
 
-### Stage W3: translations
-- [ ] UI strings and sentence templates in en, ru, de, ar, fa (stop names stay as published)
-- [ ] RTL layout check for ar/fa
+### Stage W3: English
+- [ ] UI strings and sentence templates in en (stop names stay as published), checked by reading 20 random pages
 
 ### Stage W4: guides (hand-picked search topics, numbers from the data)
 - [ ] Istanbul: IST and SAW airports to Taksim/Sultanahmet/Kadıköy, Istanbulkart, Metrobüs, ferries
@@ -76,5 +80,9 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 ### Stage W5: launch and measure
 - [ ] Google Search Console (Görkem), sitemap submitted, Core Web Vitals check, Vercel usage within Hobby limits
 
-### Stage W6 (last, optional): scroll-ride landing
+### Stage W6: more languages (only after W5 shows good indexing)
+- [ ] ru, de, ar, fa strings and sentence templates, enable them in the language config, RTL layout check for ar/fa
+- [ ] Ankara guides first in ar, fa, ru (international students)
+
+### Stage W7 (last, optional): scroll-ride landing
 - [ ] Varda-style scroll story on MapLibre (OpenFreeMap + AWS terrain, no paid imagery), e.g. Kadıköy-Eminönü ferry
