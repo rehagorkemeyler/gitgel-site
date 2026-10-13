@@ -2,22 +2,18 @@ import type { MetadataRoute } from "next";
 import { CITIES, ENABLED_LANGS, SITE_URL, type City, type Lang } from "@/lib/config";
 import { getLines, getStops } from "@/lib/data";
 import { LETTER_KEYS, letterKey } from "@/lib/listing";
-import { chunk } from "@/lib/sitemap-utils";
+import { chunk, sitemapIds } from "@/lib/sitemap-utils";
 import { GUIDES } from "@/content/guides";
 import { cityPath, letterPath, linePath, stopPath } from "@/lib/urls";
 
 export const revalidate = 86400;
 
-const TYPES = ["stop", "line", "list"] as const;
-type SitemapType = (typeof TYPES)[number];
+type SitemapType = "stop" | "line" | "list";
 
 // One sitemap per language x city x type. Each city has well under 50,000
 // stops, so every combination is a single chunk.
 export async function generateSitemaps() {
-  return ENABLED_LANGS.flatMap((lang) => [
-    { id: `${lang}-guide` },
-    ...CITIES.flatMap((city) => TYPES.map((type) => ({ id: `${lang}-${city}-${type}` }))),
-  ]);
+  return sitemapIds(ENABLED_LANGS, CITIES).map((id) => ({ id }));
 }
 
 type Entry = { path: (l: Lang) => string };

@@ -9,3 +9,20 @@ describe("chunk", () => {
     expect(chunk([])).toEqual([[]]);
   });
 });
+
+import { sitemapIds, sitemapIndexXml } from "./sitemap-utils";
+
+describe("sitemap index", () => {
+  it("lists a guide sitemap and three types per city and language", () => {
+    const ids = sitemapIds(["tr"], ["istanbul", "ankara"]);
+    expect(ids).toEqual([
+      "tr-guide", "tr-istanbul-stop", "tr-istanbul-line", "tr-istanbul-list",
+      "tr-ankara-stop", "tr-ankara-line", "tr-ankara-list",
+    ]);
+  });
+  it("builds valid index xml", () => {
+    expect(sitemapIndexXml("https://x.test", ["tr-guide"])).toContain(
+      "<loc>https://x.test/sitemap/tr-guide.xml</loc>",
+    );
+  });
+});

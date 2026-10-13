@@ -7,7 +7,13 @@ export function generateStaticParams() {
   return ENABLED_LANGS.map((lang) => ({ lang }));
 }
 
-export const metadata: Metadata = { metadataBase: new URL(SITE_URL) };
+// Search Console HTML-tag verification; set the env var in Vercel (see docs/GORKEM-TODO.md).
+const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  ...(googleVerification ? { verification: { google: googleVerification } } : {}),
+};
 
 export default async function RootLayout({
   children,
