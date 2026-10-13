@@ -8,7 +8,9 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: ["GPTBot", "ClaudeBot", "PerplexityBot"], allow: "/" },
     ],
     sitemap: ENABLED_LANGS.flatMap((lang) =>
-      CITIES.map((city) => `${SITE_URL}/sitemap/${lang}-${city}-stop.xml`),
+      CITIES.flatMap((city) =>
+        ["stop", "line", "list"].map((type) => `${SITE_URL}/sitemap/${lang}-${city}-${type}.xml`),
+      ),
     ),
   };
 }

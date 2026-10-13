@@ -65,8 +65,9 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 **Sonuç:** Durak sayfaları, veri yükleyici (24 saat önbellek, kaynak çökerse bellekteki son kopya), tr/en cümle şablonları, `withSuffix` ünlü uyumu yardımcısı (testli), hreflang, JSON-LD, sitemap (dil x şehir) ve robots.txt hazır. Kalan: Vercel bağlantısı (Görkem); canlı URL henüz yok. Not: İstanbul `stops.json` 2 MB Next önbellek sınırını aşıyor, bellek önbelleği ile çözüldü. PWA'ya durak derin bağlantısı yok, butonlar ana sayfaya gidiyor.
 
 ### Stage W2: line pages and lists
-- [ ] Line page: route, stops in order both directions, departure times, JSON-LD ItemList
-- [ ] Line list per city, stop search page, internal links between stops and lines
+- [x] Line page: route, stops in order both directions, departure times, JSON-LD ItemList
+- [x] Line list per city, stop search page, internal links between stops and lines
+**Sonuç:** Hat sayfaları (`/[lang]/[city]/line/[id]`: iki yön, sıralı duraklar, süre, hafta içi/cumartesi/pazar saatleri, ItemList JSON-LD), şehir sayfası (tüm hatlar moda göre), harf indeksi (`/stops/[harf]`), durak arama (`/search`, noindex), durak<->hat iç linkleri ve hat/liste sitemap'leri hazır. Kalan: Vercel deploy (Görkem), canlı URL henüz yok.
 
 ### Stage W3: English
 - [ ] UI strings and sentence templates in en (stop names stay as published), checked by reading 20 random pages

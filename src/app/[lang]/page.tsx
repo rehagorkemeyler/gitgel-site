@@ -34,7 +34,7 @@ export default async function Home({ params }: Props) {
       <h2>{t.chooseCity}</h2>
       <ul className="cities">
         {CITIES.map((city) => (
-          <li key={city}><span className="city">{t.cities[city]}</span></li>
+          <li key={city}><a className="city" href={`/${lang}/${city}`}>{t.cities[city]}</a></li>
         ))}
       </ul>
       <footer>

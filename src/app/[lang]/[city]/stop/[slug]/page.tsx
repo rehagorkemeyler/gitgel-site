@@ -10,6 +10,7 @@ import { stopText } from "@/lib/sentences";
 import { parseStopSegment, stopSegment } from "@/lib/slug";
 import { buildStopView } from "@/lib/stop-view";
 import { getStrings } from "@/lib/strings";
+import { cityPath, linePath } from "@/lib/urls";
 
 export const revalidate = 86400;
 // Render on first request, then cache; only the home pages are prerendered.
@@ -101,7 +102,7 @@ export default async function StopPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <nav className="muted"><a href={`/${lang}`}>{t.home}</a> › {ui.cities[city]}</nav>
+      <nav className="muted"><a href={`/${lang}`}>{t.home}</a> › <a href={cityPath(lang, city)}>{ui.cities[city]}</a></nav>
       <h1>{t.h1}</h1>
       <p>{t.intro}</p>
       <ul className="buttons">
@@ -114,7 +115,7 @@ export default async function StopPage({ params }: Props) {
         const sentences = t.lineSentences.find((s) => s.lineId === l.id);
         return (
           <section key={l.id}>
-            <h3>{sentences?.heading}</h3>
+            <h3><a href={linePath(lang, city, l.id)}>{sentences?.heading}</a></h3>
             {sentences?.sentences.map((s) => <p key={s}>{s}</p>)}
           </section>
         );
