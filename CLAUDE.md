@@ -47,10 +47,9 @@ Never push with a failing typecheck, lint or tests. Vercel deploys `main` automa
 
 ## Product rules
 
-1. Must never cost money: only free tiers and free data. No paid APIs, no Google Maps/Places on the site.
 2. Schedule-based data says "tarifeye göre" (translated per language); never present it as live.
 3. Every page has the app buttons: "Web'de kullan" -> https://rehagorkemeyler.github.io/GitGel/ , Android download.
-4. No popups or modals the visitor did not open. No cookie banner: no tracking cookies, no ads.
+4. No popups or modals the visitor did not open. No cookie banner
 5. Generated text must be grammatical and specific to the stop or line (Google punishes thin, identical pages).
 6. Say clearly that GitGel is independent and not affiliated with İETT, EGO, Metro İstanbul or BURULAŞ.
 7. If the data source is down, serve the last cached page; never show an error page for a stop that existed.
