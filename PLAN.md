@@ -56,12 +56,13 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 **Sonuç:** İskelet hazır (Next 16, tr/en açık, ar/fa için rtl desteği, ana sayfa). Kalan: Vercel bağlantısı (Görkem, docs/GORKEM-TODO.md). Canlı adres: henüz yok.
 
 ### Stage W1: stop pages (the main traffic source)
-- [ ] Build-time and ISR data loader for the three cities from the PWA JSON (cached, calm fallback if Pages is down)
-- [ ] URL: `/[lang]/[city]/stop/[code]-[slug]`, canonical + hreflang alternates for the enabled languages
-- [ ] Template: title/description pattern, lines at this stop, direction, opposite-direction stop and distance,
+- [x] Build-time and ISR data loader for the three cities from the PWA JSON (cached, calm fallback if Pages is down)
+- [x] URL: `/[lang]/[city]/stop/[code]-[slug]`, canonical + hreflang alternates for the enabled languages
+- [x] Template: title/description pattern, lines at this stop, direction, opposite-direction stop and distance,
       first/last departures (weekday, "tarifeye göre"), nearby stops, app buttons, JSON-LD BusStop + Breadcrumb
-- [ ] Sentence templates in Turkish first (correct suffixes: durağından/durağına, vowel harmony helper with tests)
-- [ ] Sitemaps per city/language/type, robots.txt
+- [x] Sentence templates in Turkish first (correct suffixes: durağından/durağına, vowel harmony helper with tests)
+- [x] Sitemaps per city/language/type, robots.txt
+**Sonuç:** Durak sayfaları, veri yükleyici (24 saat önbellek, kaynak çökerse bellekteki son kopya), tr/en cümle şablonları, `withSuffix` ünlü uyumu yardımcısı (testli), hreflang, JSON-LD, sitemap (dil x şehir) ve robots.txt hazır. Kalan: Vercel bağlantısı (Görkem); canlı URL henüz yok. Not: İstanbul `stops.json` 2 MB Next önbellek sınırını aşıyor, bellek önbelleği ile çözüldü. PWA'ya durak derin bağlantısı yok, butonlar ana sayfaya gidiyor.
 
 ### Stage W2: line pages and lists
 - [ ] Line page: route, stops in order both directions, departure times, JSON-LD ItemList
