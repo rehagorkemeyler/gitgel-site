@@ -9,7 +9,7 @@ Pull search traffic with one server-rendered page per stop, per line and per gui
 Every page sends people to the app: "Web'de kullan" -> https://rehagorkemeyler.github.io/GitGel/ ,
 Android -> APK / Play link. Must never cost money (Vercel Hobby, free data).
 
-## What Varda does (the pattern we copy)
+##
 
 - Next.js on Vercel, pages server-rendered and cached (ISR). ~4.6k stops x 4 languages = ~19k pages.
 - Stop page title: `<stop> durağı (<code>) – <line> otobüs saatleri · Varda`; description lists the lines and direction.
