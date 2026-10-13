@@ -37,6 +37,7 @@ export default async function Home({ params }: Props) {
           <li key={city}><a className="city" href={`/${lang}/${city}`}>{t.cities[city]}</a></li>
         ))}
       </ul>
+      <p><a href={`/${lang}/guides`}>{lang === "tr" ? "Havalimanı, kampüs ve vapur rehberleri" : "Airport, campus and ferry guides"}</a></p>
       <footer>
         <p className="muted">{t.scheduleNote}</p>
         <p className="muted">{t.disclaimer}</p>

@@ -3,6 +3,7 @@ import { CITIES, ENABLED_LANGS, SITE_URL, type City, type Lang } from "@/lib/con
 import { getLines, getStops } from "@/lib/data";
 import { LETTER_KEYS, letterKey } from "@/lib/listing";
 import { chunk } from "@/lib/sitemap-utils";
+import { GUIDES } from "@/content/guides";
 import { cityPath, letterPath, linePath, stopPath } from "@/lib/urls";
 
 export const revalidate = 86400;
@@ -13,9 +14,10 @@ type SitemapType = (typeof TYPES)[number];
 // One sitemap per language x city x type. Each city has well under 50,000
 // stops, so every combination is a single chunk.
 export async function generateSitemaps() {
-  return ENABLED_LANGS.flatMap((lang) =>
-    CITIES.flatMap((city) => TYPES.map((type) => ({ id: `${lang}-${city}-${type}` }))),
-  );
+  return ENABLED_LANGS.flatMap((lang) => [
+    { id: `${lang}-guide` },
+    ...CITIES.flatMap((city) => TYPES.map((type) => ({ id: `${lang}-${city}-${type}` }))),
+  ]);
 }
 
 type Entry = { path: (l: Lang) => string };
@@ -37,8 +39,13 @@ async function entriesFor(city: City, type: SitemapType): Promise<Entry[]> {
 export default async function sitemap(props: {
   id: Promise<string>;
 }): Promise<MetadataRoute.Sitemap> {
-  const [lang, city, type] = (await props.id).split("-") as [Lang, City, SitemapType];
-  const entries = (await entriesFor(city, type)).map((e) => ({
+  const parts = (await props.id).split("-");
+  const lang = parts[0] as Lang;
+  const source: Entry[] =
+    parts[1] === "guide"
+      ? [{ path: (l: Lang) => `/${l}/guides` }, ...GUIDES.map((g) => ({ path: (l: Lang) => `/${l}/guides/${g.slug}` }))]
+      : await entriesFor(parts[1] as City, parts[2] as SitemapType);
+  const entries = source.map((e) => ({
     url: `${SITE_URL}${e.path(lang)}`,
     alternates: {
       languages: Object.fromEntries(ENABLED_LANGS.map((l) => [l, `${SITE_URL}${e.path(l)}`])),

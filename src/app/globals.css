@@ -18,3 +18,4 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 .linelist li { break-inside: avoid; margin-bottom: .25rem; }
 input { padding: .7rem .9rem; border-radius: .6rem; border: 1px solid var(--line); background: var(--card); color: var(--fg); font: inherit; }
 button.btn { border: 0; font: inherit; font-weight: 600; cursor: pointer; }
+.guidelines > li { margin-bottom: .75rem; }
