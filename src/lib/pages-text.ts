@@ -58,6 +58,7 @@ export function formatRange(lang: Lang, range: [string, string] | undefined): st
   if (!range) return null;
   const [a, b] = range;
   const night = ui(lang).night;
+  if (clock(a) && a === b) return lang === "tr" ? `tek sefer ${a}` : `single trip at ${a}`;
   return `${clock(a) ? a : night} – ${clock(b) ? b : night}`;
 }
 
@@ -71,7 +72,7 @@ export function lineText(lang: Lang, v: LineView, city: City): LineText {
   const u = ui(lang);
   const mode = modeNoun(lang, line.mode);
   const n = nf(lang);
-  const heads = v.directions.map((d) => d.headsign);
+  const heads = [...new Set(v.directions.map((d) => d.headsign))];
   const first = v.directions[0];
 
   const tr = lang === "tr";
@@ -83,12 +84,12 @@ export function lineText(lang: Lang, v: LineView, city: City): LineText {
   let intro: string;
   if (tr) {
     intro =
-      v.directions.length >= 2
+      heads.length >= 2
         ? `${line.name} (${line.long_name}) ${inCity} ${heads.join(" ve ")} yönlerinde çalışan bir ${mode} hattıdır ve toplam ${n(total)} farklı durağa uğrar.`
         : `${line.name} (${line.long_name}) ${inCity} ${heads[0] ?? "tek"} yönünde çalışan bir ${mode} hattıdır ve ${n(total)} durağa uğrar.`;
   } else {
     intro =
-      v.directions.length >= 2
+      heads.length >= 2
         ? `${line.name} (${line.long_name}) is a ${mode} line ${inCity} running towards ${heads.join(" and ")}, serving ${n(total)} different stops.`
         : `${line.name} (${line.long_name}) is a ${mode} line ${inCity} towards ${heads[0] ?? "its terminus"}, serving ${n(total)} stops.`;
   }
@@ -96,16 +97,26 @@ export function lineText(lang: Lang, v: LineView, city: City): LineText {
   const directions = v.directions.map((d) => {
     const a = d.rows[0].stop.name;
     const b = d.rows[d.rows.length - 1].stop.name;
+    const loop = a === b;
     const sentence = tr
-      ? `Bu yönde ${n(d.rows.length)} durak vardır; ilk durak ${a}, son durak ${stripDot(b)}. Yolculuk tarifeye göre yaklaşık ${d.durationMinutes} dakika sürer.`
-      : `This direction has ${n(d.rows.length)} stops, from ${a} to ${stripDot(b)}. The ride takes about ${d.durationMinutes} minutes according to the timetable.`;
+      ? loop
+        ? `Bu yön, ${a} durağında başlayıp yine orada biten ${n(d.rows.length)} duraklık bir halka güzergâhtır. Yolculuk tarifeye göre yaklaşık ${d.durationMinutes} dakika sürer.`
+        : `Bu yönde ${n(d.rows.length)} durak vardır; ilk durak ${a}, son durak ${stripDot(b)}. Yolculuk tarifeye göre yaklaşık ${d.durationMinutes} dakika sürer.`
+      : loop
+        ? `This direction is a loop of ${n(d.rows.length)} stops that starts and ends at ${stripDot(a)}. The ride takes about ${d.durationMinutes} minutes according to the timetable.`
+        : `This direction has ${n(d.rows.length)} stops, from ${a} to ${stripDot(b)}. The ride takes about ${d.durationMinutes} minutes according to the timetable.`;
     const times = (
       [["weekday", u.weekday], ["saturday", u.saturday], ["sunday", u.sunday]] as const
     ).flatMap(([key, label]) => {
       const value = formatRange(lang, d.times[key]);
       return value ? [{ label, value }] : [];
     });
-    return { heading: tr ? `${d.headsign} yönü` : `Towards ${d.headsign}`, sentence, times };
+    const dup = v.directions.filter((x) => x.headsign === d.headsign).length > 1;
+    const num = v.directions.indexOf(d) + 1;
+    const heading = tr
+      ? `${dup ? `${num}. yön: ` : ""}${d.headsign} yönü`
+      : `${dup ? `Direction ${num}: t` : "T"}owards ${d.headsign}`;
+    return { heading, sentence, times };
   });
 
   const wk = first ? formatRange(lang, first.times.weekday) : null;

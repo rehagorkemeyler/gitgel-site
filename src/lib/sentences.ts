@@ -55,7 +55,9 @@ function trText(v: StopView, code: string, city: City): StopText {
       sentences.push(`${l.name} hattı (${l.longName}) bu ${place.bareAbl} geçer.`);
     }
     for (const d of l.departures) {
-      if (clock(d.first) && clock(d.last)) {
+      if (clock(d.first) && d.first === d.last) {
+        sentences.push(`${d.headsign} yönünde hafta içi tek sefer yaklaşık ${withSuffix(d.first, "loc")} bu ${place.bareAbl} geçer.`);
+      } else if (clock(d.first) && clock(d.last)) {
         sentences.push(
           `${d.headsign} yönünde hafta içi ilk sefer yaklaşık ${withSuffix(d.first, "loc")}, son sefer ${withSuffix(d.last, "loc")} bu ${place.bareAbl} geçer.`,
         );
@@ -105,7 +107,9 @@ function enText(v: StopView, code: string, city: City): StopText {
       l.departures.length === 0
         ? [`Line ${l.name} (${l.longName}) serves this stop.`]
         : l.departures.map((d) =>
-            clock(d.first) && clock(d.last)
+            clock(d.first) && d.first === d.last
+              ? `Towards ${d.headsign}, a single weekday service reaches this stop around ${d.first}.`
+              : clock(d.first) && clock(d.last)
               ? `Towards ${d.headsign}, on weekdays the first service reaches this stop around ${d.first} and the last around ${d.last}.`
               : `Towards ${d.headsign}, on weekdays the first service reaches this stop around ${d.first}.`,
           ),
@@ -115,7 +119,7 @@ function enText(v: StopView, code: string, city: City): StopText {
     title: `${stop.name} (${code}) – ${join(names.slice(0, 3))} ${mode} times · GitGel`,
     description: `${h1} in ${cityName}: ${count} ${count === 1 ? "line" : "lines"} (${join(names.slice(0, 6))}), first and last service times and nearby stops.`,
     h1,
-    intro: `${count} ${count === 1 ? "line serves" : "lines serve"} ${h1} in ${cityName}: ${join(names.slice(0, 8))}${count > 8 ? " and more" : ""}.`,
+    intro: `${stop.name} is a ${mode === "bus" ? "bus stop" : stop.mode === "ferry" ? "ferry pier" : `${mode} station`} in ${cityName}, served by ${count} ${count === 1 ? "line" : "lines"}: ${join(names.slice(0, 8))}${count > 8 ? " and more" : ""}.`,
     linesHeading: "Lines at this stop",
     lineSentences,
     scheduleNote: "Times follow the timetable; they are not live positions.",

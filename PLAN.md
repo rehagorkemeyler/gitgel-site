@@ -70,7 +70,8 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 **Sonuç:** Hat sayfaları (`/[lang]/[city]/line/[id]`: iki yön, sıralı duraklar, süre, hafta içi/cumartesi/pazar saatleri, ItemList JSON-LD), şehir sayfası (tüm hatlar moda göre), harf indeksi (`/stops/[harf]`), durak arama (`/search`, noindex), durak<->hat iç linkleri ve hat/liste sitemap'leri hazır. Kalan: Vercel deploy (Görkem), canlı URL henüz yok.
 
 ### Stage W3: English
-- [ ] UI strings and sentence templates in en (stop names stay as published), checked by reading 20 random pages
+- [x] UI strings and sentence templates in en (stop names stay as published), checked by reading 20 random pages
+**Sonuç:** Canlı sitede 20 rastgele en sayfası (durak ve hat, 3 şehir) okundu; düzeltilenler: durak adı tekrarlayan giriş cümlesi, aynı yönün iki kez yazılması, halka hatlar (başlangıç = bitiş), tek seferlik hatlar ("07:30 – 07:30") ve ilk=son seferli duraklar. tr sayfalarına da aynı düzeltmeler uygulandı, testler eklendi. Canlı: https://gitgel-site.vercel.app/en
 
 ### Stage W4: guides (hand-picked search topics, numbers from the data)
 - [ ] Istanbul: IST and SAW airports to Taksim/Sultanahmet/Kadıköy, Istanbulkart, Metrobüs, ferries
