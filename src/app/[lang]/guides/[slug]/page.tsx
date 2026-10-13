@@ -5,7 +5,7 @@ import { GUIDES, copyFor, guideBySlug } from "@/content/guides";
 import { APP_ANDROID_URL, APP_WEB_URL, SITE_URL, isEnabledLang } from "@/lib/config";
 import { getLineDetail, getLines, getStops, type LineDetail } from "@/lib/data";
 import { formatDate, guideUi, statsSentence } from "@/lib/guide-text";
-import { summarizeLines } from "@/lib/guide-stats";
+import { pickDerivedLines, relatedGuides, summarizeLines } from "@/lib/guide-stats";
 import { formatRange } from "@/lib/pages-text";
 import { getStrings } from "@/lib/strings";
 import { alternatesFor, linePath, stopPath } from "@/lib/urls";
@@ -18,6 +18,7 @@ export function generateStaticParams() {
 type Props = { params: Promise<{ lang: string; slug: string }> };
 
 const MAX_DERIVED_LINES = 8;
+const RELATED_COUNT = 6;
 
 const load = cache(async (slug: string) => {
   const guide = guideBySlug(slug);
@@ -26,7 +27,7 @@ const load = cache(async (slug: string) => {
   const stops = guide.stops.flatMap((id) => allStops.find((s) => s.id === id) ?? []);
   const lineIds = guide.lines.length
     ? guide.lines
-    : [...new Set(stops.flatMap((s) => s.lines))].slice(0, MAX_DERIVED_LINES);
+    : pickDerivedLines(stops, lineMeta, MAX_DERIVED_LINES);
   const settled = await Promise.allSettled(
     lineIds.filter((id) => lineMeta.has(id)).map((id) => getLineDetail(guide.city, id)),
   );
@@ -136,7 +137,7 @@ export default async function GuidePage({ params }: Props) {
       <section>
         <h2>{u.moreGuides}</h2>
         <ul>
-          {GUIDES.filter((g) => g.city === guide.city && g.slug !== slug).map((g) => (
+          {relatedGuides(GUIDES, guide, RELATED_COUNT).map((g) => (
             <li key={g.slug}><a href={`/${lang}/guides/${g.slug}`}>{copyFor(g, lang).title}</a></li>
           ))}
         </ul>

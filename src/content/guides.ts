@@ -1,4 +1,7 @@
 import type { City, Lang } from "@/lib/config";
+import { ANKARA_GUIDES } from "./guides-ankara";
+import { BURSA_GUIDES } from "./guides-bursa";
+import { ISTANBUL_GUIDES } from "./guides-istanbul";
 
 export type GuideCopy = {
   title: string;
@@ -21,7 +24,8 @@ export type GuideDef = {
 
 const UPDATED = "2026-10-13";
 
-export const GUIDES: GuideDef[] = [
+
+const BASE_GUIDES: GuideDef[] = [
   {
     slug: "istanbul-havalimani-sehir-merkezi",
     city: "istanbul",
@@ -524,6 +528,8 @@ export const GUIDES: GuideDef[] = [
     },
   },
 ];
+
+export const GUIDES: GuideDef[] = [...BASE_GUIDES, ...ISTANBUL_GUIDES, ...ANKARA_GUIDES, ...BURSA_GUIDES];
 
 export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug);
 export const copyFor = (g: GuideDef, lang: Lang): GuideCopy => (lang === "tr" ? g.tr : g.en);

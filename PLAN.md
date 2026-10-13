@@ -74,13 +74,14 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 **Sonuç:** Canlı sitede 20 rastgele en sayfası (durak ve hat, 3 şehir) okundu; düzeltilenler: durak adı tekrarlayan giriş cümlesi, aynı yönün iki kez yazılması, halka hatlar (başlangıç = bitiş), tek seferlik hatlar ("07:30 – 07:30") ve ilk=son seferli duraklar. tr sayfalarına da aynı düzeltmeler uygulandı, testler eklendi. Canlı: https://gitgel-site.vercel.app/en
 
 ### Stage W4: guides (hand-picked search topics, numbers from the data)
-- [~] Istanbul: IST and SAW airports to Taksim/Sultanahmet/Kadıköy, Istanbulkart, Metrobüs, ferries
+- [x] Istanbul: IST and SAW airports to Taksim/Sultanahmet/Kadıköy, Istanbulkart, Metrobüs, ferries
       (Kadıköy-Eminönü/Karaköy, Adalar), Marmaray, night transport
 - [x] Ankara (for international students): Esenboğa to Kızılay, AŞTİ, campuses (ODTÜ, Bilkent, Hacettepe Beytepe,
       Gazi, Ankara Üni. Gölbaşı/Cebeci), student AnkaraKart, Ankaray/metro
 - [x] Bursa: Uludağ cable car, Görükle (Uludağ Üniversitesi), BursaRay, BursaKart
 - [x] JSON-LD Article, "updated" date, links to the stop and line pages they mention
 **Sonuç:** 14 rehber, tr+en (`/[lang]/guides`, `/[lang]/guides/[slug]`, içerik `src/content/guides.ts`). Her rehberde hat saatleri/süreleri veriden, durak ve hat sayfalarına link, Article JSON-LD, güncelleme tarihi, sitemap. Istanbul: IST, SAW, Marmaray, metrobüs, Kadıköy-Eminönü-Karaköy vapuru, Adalar, İstanbulkart (kısmen: gece ulaşımı ve Sultanahmet/Taksim/Kadıköy'e ayrı havalimanı rehberleri yok). Ankara: Esenboğa, AŞTİ, kampüsler, AnkaraKart, Ankaray/metro. Bursa: teleferik, Görükle, BursaRay+BursaKart. Ücret göstermiyoruz (veride yok), kart rehberleri resmi sayfaya yönlendiriyor. Teleferik saatleri veride yok. Kalan: gece ulaşımı, ayrı havalimanı-semt rehberleri.
+**W4 genişletme (14 Ekim):** Rehber sayısı 14'ten 53'e çıktı (İstanbul 24, Ankara 16, Bursa 13 civarı; `src/content/guides-{istanbul,ankara,bursa}.ts`). Yeni konular: semt/merkez rehberleri (Taksim, Sultanahmet, Kadıköy, Üsküdar, Boğaz kıyısı, Eminönü, Kızılay, Ulus, Gar, Heykel/Ulucami…), tüm metro/tramvay/füniküler/teleferik hatları, vapur turları (Boğaz, Haliç), gece ulaşımı (3 şehir), hastaneler, üniversiteler, Cumalıkızık, Mudanya, Gemlik. Her rehberde hat saatleri veriden, ilgili rehberler (aynı hat/durak kesişimine göre 6 adet) ve durak/hat linkleri var. Ücret yok. Kalan: yeni rehberler Search Console'da indekslenince hangilerinin iyi çalıştığına bakıp zayıfları birleştirmek.
 
 ### Stage W5: launch and measure
 - [ ] Google Search Console (Görkem), sitemap submitted, Core Web Vitals check, Vercel usage within Hobby limits

@@ -1,4 +1,4 @@
-import type { LineDetail } from "./data";
+import type { LineDetail, LineMeta, Stop } from "./data";
 
 const toMinutes = (t: string): number | null => {
   const m = /^(\d{1,2}):(\d{2})$/.exec(t);
@@ -42,4 +42,32 @@ export function summarizeLines(lines: LineDetail[]): GuideStats {
     latestLast: latest?.[1] ?? null,
     overnightLines: overnight,
   };
+}
+
+/**
+ * Lines for a guide that lists none: those serving the most of its stops,
+ * rail-like modes first so a metro or tram is not buried under buses.
+ */
+export function pickDerivedLines(stops: Stop[], meta: Map<string, LineMeta>, max: number): string[] {
+  const score = new Map<string, number>();
+  for (const stop of stops) {
+    for (const id of stop.lines) score.set(id, (score.get(id) ?? 0) + 1);
+  }
+  const bonus = (id: string) => (meta.get(id)?.mode === "bus" ? 0 : 100);
+  return [...score.keys()]
+    .filter((id) => meta.has(id))
+    .sort((a, b) => score.get(b)! + bonus(b) - (score.get(a)! + bonus(a)) || a.localeCompare(b, "tr", { numeric: true }))
+    .slice(0, max);
+}
+
+type GuideLike = { slug: string; city: string; lines: string[]; stops: string[] };
+
+/** Other guides of the same city, ranked by shared lines and stops, then by slug. */
+export function relatedGuides<T extends GuideLike>(all: T[], guide: T, count: number): T[] {
+  const overlap = (g: T) =>
+    g.lines.filter((l) => guide.lines.includes(l)).length + g.stops.filter((s) => guide.stops.includes(s)).length;
+  return all
+    .filter((g) => g.city === guide.city && g.slug !== guide.slug)
+    .sort((a, b) => overlap(b) - overlap(a) || a.slug.localeCompare(b.slug))
+    .slice(0, count);
 }
