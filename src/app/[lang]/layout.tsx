@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Analytics } from "@vercel/analytics/next";
 import { ENABLED_LANGS, SITE_URL, dirOf, isEnabledLang } from "@/lib/config";
 import "../globals.css";
 
@@ -20,7 +21,10 @@ export default async function RootLayout({
   if (!isEnabledLang(lang)) notFound();
   return (
     <html lang={lang} dir={dirOf(lang)}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
