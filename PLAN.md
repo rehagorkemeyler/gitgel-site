@@ -50,9 +50,10 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 ## Stages
 
 ### Stage W0: skeleton and deploy
-- [ ] Next.js (App Router, TypeScript strict), `/[lang]` routing built for all six languages (only tr, en enabled), `dir="rtl"` support for ar/fa
-- [ ] Home page per language: short pitch, "Web'de kullan" (PWA link), Android download, city picker
+- [x] Next.js (App Router, TypeScript strict), `/[lang]` routing built for all six languages (only tr, en enabled), `dir="rtl"` support for ar/fa
+- [x] Home page per language: short pitch, "Web'de kullan" (PWA link), Android download, city picker
 - [ ] Deployed on Vercel from the repo (Görkem connects it), `*.vercel.app` URL works
+**Sonuç:** İskelet hazır (Next 16, tr/en açık, ar/fa için rtl desteği, ana sayfa). Kalan: Vercel bağlantısı (Görkem, docs/GORKEM-TODO.md). Canlı adres: henüz yok.
 
 ### Stage W1: stop pages (the main traffic source)
 - [ ] Build-time and ISR data loader for the three cities from the PWA JSON (cached, calm fallback if Pages is down)
