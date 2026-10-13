@@ -84,7 +84,8 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 **W4 genişletme (14 Ekim):** Rehber sayısı 14'ten 53'e çıktı (İstanbul 24, Ankara 16, Bursa 13 civarı; `src/content/guides-{istanbul,ankara,bursa}.ts`). Yeni konular: semt/merkez rehberleri (Taksim, Sultanahmet, Kadıköy, Üsküdar, Boğaz kıyısı, Eminönü, Kızılay, Ulus, Gar, Heykel/Ulucami…), tüm metro/tramvay/füniküler/teleferik hatları, vapur turları (Boğaz, Haliç), gece ulaşımı (3 şehir), hastaneler, üniversiteler, Cumalıkızık, Mudanya, Gemlik. Her rehberde hat saatleri veriden, ilgili rehberler (aynı hat/durak kesişimine göre 6 adet) ve durak/hat linkleri var. Ücret yok. Kalan: yeni rehberler Search Console'da indekslenince hangilerinin iyi çalıştığına bakıp zayıfları birleştirmek.
 
 ### Stage W5: launch and measure
-- [ ] Google Search Console (Görkem), sitemap submitted, Core Web Vitals check, Vercel usage within Hobby limits
+- [x] Google Search Console (Görkem), sitemap submitted, Core Web Vitals check, Vercel usage within Hobby limits
+**Sonuç:** Search Console doğrulandı (HTML dosyası) ve `sitemap-index.xml` gönderildi (14 Ekim). Core Web Vitals (mobil, canlı): LCP 0,6-1,0 sn (İstanbul şehir sayfası 2,0 sn), CLS 0, JS 131 KB. Vercel Web Analytics açık. Kalan: Görkem birkaç gün sonra Search Console > Sayfalar'dan dizinlenen sayfa sayısını yazar ve Vercel > Usage'da Hobby limitlerine bakar; W6 buna bağlı.
 
 ### Stage W6: more languages (only after W5 shows good indexing)
 - [ ] ru, de, ar, fa strings and sentence templates, enable them in the language config, RTL layout check for ar/fa

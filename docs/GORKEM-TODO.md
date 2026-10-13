@@ -14,3 +14,9 @@
 5. Search Console'a dön > **Doğrula**. "Mülk sahipliği doğrulandı" yazısını görmelisin.
 6. Sol menüde **Sitemap'ler** > "Yeni sitemap ekle" kutusuna `sitemap-index.xml` yaz > Gönder. Durum "Başarılı" olmalı (ilk günlerde "Alınamadı" görünürse 1 gün bekle, normaldir).
 7. Bana "Search Console tamam" yaz. Birkaç gün sonra Sayfalar raporunda kaç sayfanın dizine eklendiğini yaz, W6'ya (yeni diller) ona göre geçeriz.
+
+## SENİN SIRAN: W5 sonrası izleme (3-7 gün sonra)
+
+1. Search Console > Sayfalar: "Dizine eklendi" ve "Dizine eklenmedi" sayılarını bana yaz.
+2. Search Console > Sitemap'ler: `sitemap-index.xml` durumunun "Başarılı" olduğunu kontrol et.
+3. vercel.com > gitgel-site > Usage: kırmızı veya "limite yaklaştı" uyarısı var mı bak, varsa yaz.
