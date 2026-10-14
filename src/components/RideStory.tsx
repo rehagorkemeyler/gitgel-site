@@ -1,18 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { Map as MlMap, Marker, GeoJSONSource } from "maplibre-gl";
+import { useEffect, useMemo, useRef } from "react";
+import type { ExpressionSpecification, Map as MlMap, Marker, StyleSpecification } from "maplibre-gl";
 import type { LandingText, RideDemo, RideRoute } from "@/lib/landing";
-import {
-  angleDelta,
-  buildPath,
-  clamp01,
-  headingAt,
-  metersForProgress,
-  pointAt,
-  sliceTo,
-  smootherstep,
-} from "@/lib/ride-path";
+import { angleDelta, buildPath, clamp01, headingAt, metersForProgress, pointAt, smootherstep } from "@/lib/ride-path";
+import { cardOpacity, overlayState } from "@/lib/ride-overlay";
 
 type Props = {
   route: RideRoute;
@@ -23,139 +15,246 @@ type Props = {
   androidDownload: string;
 };
 
-type Camera = { lon: number; lat: number; zoom: number; pitch: number; bearing: number };
 type Pad = { top: number; bottom: number; left: number };
+type Cam = { lon: number; lat: number; zoom: number; pitch: number; bearing: number; pad: Pad };
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
-const DEM_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 const GOLD = "#ffb43a";
+const DONE = "#ffd27a";
+const HOLD = 0.4;
 
-// Camera for the opening overview: the whole of central Ankara, tilted, at dusk.
-const OVERVIEW = { zoom: 12.2, pitch: 76, bearing: 205 };
+// Opening shot: low over Altınpark, looking down the route towards the city centre at dusk.
+const OVERVIEW = { zoom: 14.1, pitch: 70, bearing: 208 };
 
+/**
+ * The home page scroll story. Performance rules (the page must stay at the
+ * display's refresh rate): React renders once; scrolling only schedules one
+ * requestAnimationFrame that writes styles and text straight to the DOM and
+ * moves the map camera. The route reveal is a paint property, never new
+ * GeoJSON, and nothing over the moving map uses backdrop blur.
+ */
 export default function RideStory({ route, text, appWebUrl, androidUrl, useWeb, androidDownload }: Props) {
   const rootRef = useRef<HTMLElement>(null);
   const mapEl = useRef<HTMLDivElement>(null);
-  const progressRef = useRef(0);
-  const [progress, setProgress] = useState(0);
-  const [mapReady, setMapReady] = useState(false);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const railRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const chipRef = useRef<HTMLDivElement>(null);
+  const chipName = useRef<HTMLElement>(null);
+  const chipLeft = useRef<HTMLElement>(null);
+  const barRef = useRef<HTMLSpanElement>(null);
 
   const path = useMemo(() => buildPath(route.path), [route.path]);
   const anchors = useMemo(() => text.steps.map((s) => route.stops[s.stop].meters), [text.steps, route.stops]);
   const stepCount = text.steps.length;
-  const lastStop = route.stops[route.stops.length - 1];
 
-  // Scroll -> progress (0..1) over the whole story.
   useEffect(() => {
-    const onScroll = () => {
-      const el = rootRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const total = r.height - window.innerHeight;
-      const p = total > 0 ? clamp01(-r.top / total) : 0;
-      progressRef.current = p;
-      setProgress(p);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
-
-  // The map: loaded lazily so the text paints first, and skipped entirely if WebGL is missing.
-  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
     let disposed = false;
-    let map: MlMap | undefined;
     let raf = 0;
-    const markers: Marker[] = [];
+    let top = 0;
+    let span = 1;
+    let vh = window.innerHeight;
+    const narrow = () => window.innerWidth < 760;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    (async () => {
-      const maplibre = (await import("maplibre-gl")).default;
+    // Cached layout: reading it on every scroll would force style recalculation.
+    const measure = () => {
+      vh = window.innerHeight;
+      top = root.getBoundingClientRect().top + window.scrollY;
+      span = Math.max(root.offsetHeight - vh, 1);
+    };
+    const progress = () => clamp01((window.scrollY - top) / span);
+
+    // ---- DOM overlay: only writes what changed ----
+    const last = { step: -1, passed: -1, at: -2, left: -1, bar: -1 };
+    const cardOp: number[] = [];
+    const paintOverlay = (p: number, meters: number) => {
+      const s = p * (stepCount - 1);
+      cardRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const o = Math.round(cardOpacity(s, i) * 100) / 100;
+        if (cardOp[i] === o) return;
+        cardOp[i] = o;
+        el.style.opacity = String(o);
+        el.style.visibility = o === 0 ? "hidden" : "visible";
+        el.style.transform = `translate3d(0, ${Math.round((i - s) * 28)}px, 0)`;
+      });
+      const step = Math.round(s);
+      if (step !== last.step) {
+        last.step = step;
+        root.dataset.step = String(step);
+        chipRef.current?.classList.toggle("is-on", step > 0);
+      }
+      const bar = Math.round(p * 1000) / 1000;
+      if (bar !== last.bar && barRef.current) {
+        last.bar = bar;
+        barRef.current.style.transform = `scaleX(${bar})`;
+      }
+      const o = overlayState(route.stops, meters);
+      if (o.at !== last.at || o.minutesLeft !== last.left) {
+        last.at = o.at;
+        last.left = o.minutesLeft;
+        if (chipName.current) {
+          chipName.current.textContent =
+            o.at >= 0 ? route.stops[o.at].name : `→ ${route.stops[o.next === -1 ? route.stops.length - 1 : o.next].name}`;
+        }
+        if (chipLeft.current) {
+          chipLeft.current.textContent = o.minutesLeft > 0 ? text.minutesLeft.replace("{n}", String(o.minutesLeft)) : text.arrived;
+        }
+      }
+      if (o.passed !== last.passed) {
+        last.passed = o.passed;
+        text.rail.forEach((stopIndex, k) => {
+          const li = railRefs.current[k];
+          if (!li) return;
+          li.classList.toggle("is-passed", stopIndex <= o.passed);
+          li.classList.toggle("is-current", stopIndex === o.passed);
+        });
+      }
+    };
+
+    // ---- Map (attached later) ----
+    let onFrame: ((now: number, p: number) => boolean) | null = null;
+
+    const frame = (now: number) => {
+      raf = 0;
+      const p = progress();
+      paintOverlay(p, metersForProgress(p, anchors, HOLD));
+      const moving = onFrame ? onFrame(now, p) : false;
+      if (moving) raf = requestAnimationFrame(frame);
+    };
+    const kick = () => {
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+    const onResize = () => {
+      measure();
+      kick();
+    };
+    measure();
+    kick();
+    window.addEventListener("scroll", kick, { passive: true });
+    window.addEventListener("resize", onResize);
+
+    // ---- Chapter paging for wheels and trackpads ----
+    // Native mandatory snapping handles touch and keys. Wheels differ per browser
+    // (some snap back on small deltas), so inside the story one wheel gesture
+    // always moves exactly one chapter, and the gesture's inertia tail is ignored.
+    const html = document.documentElement;
+    let animating = false;
+    let lastWheel = 0;
+    let gestureUsed = false;
+    const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const animateTo = (y: number) => {
+      const from = window.scrollY;
+      const dist = y - from;
+      if (Math.abs(dist) < 1) return;
+      animating = true;
+      html.style.scrollSnapType = "none";
+      const dur = reduced ? 0 : 720;
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const t = dur ? Math.min((now - t0) / dur, 1) : 1;
+        window.scrollTo(0, from + dist * ease(t));
+        if (t < 1) requestAnimationFrame(step);
+        else {
+          animating = false;
+          html.style.scrollSnapType = "";
+        }
+      };
+      requestAnimationFrame(step);
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || Math.abs(e.deltaY) < Math.abs(e.deltaX)) return; // pinch zoom, sideways
+      const y = window.scrollY;
+      const end = top + span; // last chapter
+      const down = e.deltaY > 0;
+      // Only page inside the story, or from the last chapter on into the page below.
+      if (y < top - 2 || y > end + 2 || (!down && y <= top + 2)) return;
+      e.preventDefault();
+      const now = performance.now();
+      const quiet = now - lastWheel;
+      lastWheel = now;
+      if (quiet > 180) gestureUsed = false; // a pause means a new gesture
+      if (animating || gestureUsed || Math.abs(e.deltaY) < 4) return;
+      gestureUsed = true;
+      const chapter = Math.round((y - top) / vh);
+      const next = Math.min(Math.max(chapter + (down ? 1 : -1), 0), stepCount);
+      animateTo(top + next * vh);
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+
+    const markers: Marker[] = [];
+    let map: MlMap | undefined;
+
+    const startMap = async () => {
+      const [{ default: maplibre }, style] = await Promise.all([
+        import("maplibre-gl"),
+        fetch(STYLE_URL).then((r) => r.json() as Promise<StyleSpecification>),
+      ]);
       if (disposed || !mapEl.current) return;
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const narrow = window.innerWidth < 760;
-      const start = pointAt(path, 0);
-      const overview = pointAt(path, anchors[2] ?? 0);
+
+      // Keep only what the scene shows. Map labels collide with our text and
+      // re-run collision detection on every camera move, so they go.
+      style.layers = style.layers.filter(
+        (l) => l.type !== "symbol" && !(l.paint && "fill-pattern" in l.paint) && !/landcover|landuse_residential|aeroway|housenumber/.test(l.id),
+      );
+      delete style.sprite;
+      style.sky = {
+        "sky-color": "#0a1630",
+        "horizon-color": "#f59e5b",
+        "fog-color": "#18213a",
+        "sky-horizon-blend": 0.55,
+        "horizon-fog-blend": 0.8,
+        "fog-ground-blend": 0.25,
+      };
+
+      const n = narrow();
+      const overview = pointAt(path, 600);
       try {
         map = new maplibre.Map({
           container: mapEl.current,
-          style: STYLE_URL,
+          style,
           center: overview,
           zoom: OVERVIEW.zoom,
           pitch: OVERVIEW.pitch,
           bearing: OVERVIEW.bearing,
           interactive: false,
           attributionControl: { compact: true },
-          maxPitch: 80,
+          maxPitch: 78,
           fadeDuration: 0,
+          renderWorldCopies: false,
+          pixelRatio: Math.min(window.devicePixelRatio || 1, n ? 1.5 : 1.75),
         });
       } catch {
-        return; // No WebGL: the dusk gradient behind stays as the backdrop.
+        return; // No WebGL: the painted dusk sky behind stays as the backdrop.
       }
       const m = map;
 
       m.on("load", () => {
         if (disposed) return;
-        m.addSource("dem", { type: "raster-dem", tiles: [DEM_TILES], encoding: "terrarium", tileSize: 256, maxzoom: 14 });
-        m.addSource("dem-shade", { type: "raster-dem", tiles: [DEM_TILES], encoding: "terrarium", tileSize: 256, maxzoom: 14 });
-        m.setTerrain({ source: "dem", exaggeration: 1.6 });
-        m.setSky({
-          "sky-color": "#0a1630",
-          "horizon-color": "#f59e5b",
-          "fog-color": "#18213a",
-          "sky-horizon-blend": 0.55,
-          "horizon-fog-blend": 0.75,
-          "fog-ground-blend": 0.35,
-          "atmosphere-blend": 0.6,
-        });
-
-        const firstSymbol = m.getStyle().layers.find((l) => l.type === "symbol")?.id;
-        m.addLayer(
-          {
-            id: "gg-hillshade",
-            type: "hillshade",
-            source: "dem-shade",
+        if (m.getSource("openmaptiles")) {
+          m.addLayer({
+            id: "gg-buildings",
+            type: "fill-extrusion",
+            source: "openmaptiles",
+            "source-layer": "building",
+            minzoom: 14,
             paint: {
-              "hillshade-shadow-color": "#05080f",
-              "hillshade-highlight-color": "#f4a261",
-              "hillshade-accent-color": "#0c1222",
-              "hillshade-exaggeration": 0.55,
-              "hillshade-illumination-direction": 290,
+              "fill-extrusion-color": ["interpolate", ["linear"], ["coalesce", ["get", "render_height"], 6], 0, "#1a2236", 40, "#2b3550"],
+              "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6],
+              "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+              "fill-extrusion-opacity": 0.9,
+              "fill-extrusion-vertical-gradient": true,
             },
-          },
-          firstSymbol,
-        );
-
-        const hasBuildings = m.getStyle().layers.some((l) => l.type === "fill-extrusion");
-        if (!hasBuildings && m.getSource("openmaptiles")) {
-          m.addLayer(
-            {
-              id: "gg-buildings",
-              type: "fill-extrusion",
-              source: "openmaptiles",
-              "source-layer": "building",
-              minzoom: 13,
-              paint: {
-                "fill-extrusion-color": ["interpolate", ["linear"], ["coalesce", ["get", "render_height"], 6], 0, "#1a2236", 40, "#2b3550"],
-                "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6],
-                "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-                "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 14.5, 0.85],
-              },
-            },
-            firstSymbol,
-          );
+          });
         }
-
-        const line = (coords: [number, number][]) => ({
+        const lineFeature = {
           type: "Feature" as const,
           properties: {},
-          geometry: { type: "LineString" as const, coordinates: coords },
-        });
-        m.addSource("route", { type: "geojson", data: line(route.path) });
-        m.addSource("route-done", { type: "geojson", data: line([route.path[0], route.path[0]]) });
+          geometry: { type: "LineString" as const, coordinates: route.path },
+        };
+        m.addSource("route", { type: "geojson", data: lineFeature, lineMetrics: true });
         m.addSource("stops", {
           type: "geojson",
           data: {
@@ -163,20 +262,25 @@ export default function RideStory({ route, text, appWebUrl, androidUrl, useWeb, 
             features: route.stops.map((s, i) => ({
               type: "Feature",
               id: i,
-              properties: { m: s.meters },
+              properties: {},
               geometry: { type: "Point", coordinates: [s.lon, s.lat] },
             })),
           },
         });
-        m.addLayer({ id: "gg-route", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": GOLD, "line-width": 3, "line-opacity": 0.28 } });
-        m.addLayer({ id: "gg-route-glow", type: "line", source: "route-done", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": GOLD, "line-width": 16, "line-opacity": 0.35, "line-blur": 10 } });
-        m.addLayer({ id: "gg-route-done", type: "line", source: "route-done", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": GOLD, "line-width": 4.5 } });
+        const round = { "line-cap": "round", "line-join": "round" } as const;
+        // The travelled part is revealed with a gradient stop that moves along
+        // the line: a paint update, no new geometry for the worker to cut.
+        const reveal = (frac: number, color: string) =>
+          ["step", ["line-progress"], color, Math.min(Math.max(frac, 0.0001), 0.9999), "rgba(0,0,0,0)"] as ExpressionSpecification;
+        m.addLayer({ id: "gg-route", type: "line", source: "route", layout: round, paint: { "line-color": GOLD, "line-width": 3.5, "line-opacity": 0.4 } });
+        m.addLayer({ id: "gg-route-glow", type: "line", source: "route", layout: round, paint: { "line-width": 18, "line-opacity": 0.35, "line-blur": 10, "line-gradient": reveal(0, GOLD) } });
+        m.addLayer({ id: "gg-route-done", type: "line", source: "route", layout: round, paint: { "line-width": 5.5, "line-gradient": reveal(0, DONE) } });
         m.addLayer({
           id: "gg-stops",
           type: "circle",
           source: "stops",
           paint: {
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 2.2, 16, 5.5],
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 2.5, 16, 5.5],
             "circle-color": ["case", ["boolean", ["feature-state", "passed"], false], GOLD, "#0d1424"],
             "circle-stroke-color": GOLD,
             "circle-stroke-width": 1.6,
@@ -184,197 +288,167 @@ export default function RideStory({ route, text, appWebUrl, androidUrl, useWeb, 
           },
         });
 
-        // Labels for the stops the story talks about, and the bus itself.
-        for (const i of new Set(text.steps.map((s) => s.stop))) {
+        for (const i of new Set(text.steps.slice(1).map((s) => s.stop))) {
           const s = route.stops[i];
           const el = document.createElement("div");
           el.className = "rs-label";
           el.textContent = s.name;
           markers.push(new maplibre.Marker({ element: el, anchor: "top", offset: [0, 10] }).setLngLat([s.lon, s.lat]).addTo(m));
         }
-        const bus = document.createElement("div");
-        bus.className = "rs-bus";
-        bus.innerHTML = `<span class="rs-bus-pulse"></span><span class="rs-bus-dot"></span><span class="rs-bus-tag">${route.line}</span>`;
-        const busMarker = new maplibre.Marker({ element: bus, anchor: "center" }).setLngLat(start).addTo(m);
-        markers.push(busMarker);
+        const busEl = document.createElement("div");
+        busEl.className = "rs-bus";
+        busEl.innerHTML = `<span class="rs-bus-pulse"></span><span class="rs-bus-dot"></span><span class="rs-bus-tag">${route.line}</span>`;
+        const bus = new maplibre.Marker({ element: busEl, anchor: "center" }).setLngLat(pointAt(path, 0)).addTo(m);
+        markers.push(bus);
 
-        // The overview looks south-west over the city from above Ulus, towards the Çankaya hills.
-        const overviewCenter = pointAt(path, anchors[2] ?? 0);
-        const cam: Camera & { pad: Pad } = { lon: overviewCenter[0], lat: overviewCenter[1], ...OVERVIEW, pad: { top: 0, bottom: 0, left: 0 } };
-        let lastDone = -1;
-        let passed = -1;
-
-        const target = (p: number) => {
-          const meters = metersForProgress(p, anchors, 0.4);
-          const bus = pointAt(path, meters);
+        const target = (p: number): Cam & { meters: number; bus: [number, number] } => {
+          const meters = metersForProgress(p, anchors, HOLD);
+          const busAt = pointAt(path, meters);
           const s = p * (stepCount - 1);
-          // Step 0 -> 1 drops from the overview into the ride camera; the
-          // last step swings round and settles lower for the arrival.
-          const lift = smootherstep(s / 0.85);
+          const lift = smootherstep(s / 0.9);
           const arrive = smootherstep(s - (stepCount - 2) - 0.3);
-          const ride = { zoom: narrow ? 15.2 : 15.6, pitch: narrow ? 60 : 66 };
-          const zoom = OVERVIEW.zoom + (ride.zoom - OVERVIEW.zoom) * lift + 0.5 * arrive;
-          const pitch = OVERVIEW.pitch + (ride.pitch - OVERVIEW.pitch) * lift - 6 * arrive;
-          const heading = headingAt(path, meters) - 35 * arrive;
-          const bearing = OVERVIEW.bearing + angleDelta(OVERVIEW.bearing, heading) * lift;
-          const h = m.getContainer().clientHeight;
+          const nn = narrow();
+          const ride = { zoom: nn ? 15.2 : 15.5, pitch: nn ? 64 : 70 };
           const w = m.getContainer().clientWidth;
-          // Keep the bus clear of the text: lower-middle on wide screens, upper half on phones
-          // (cards sit at the bottom there), and beside the arrival card at the end.
-          const ridePad: Pad = narrow ? { top: 0, bottom: h * 0.42, left: 0 } : { top: h * 0.22, bottom: 0, left: w * 0.12 };
-          const endPad: Pad = narrow ? { top: 0, bottom: h * 0.5, left: 0 } : { top: h * 0.1, bottom: 0, left: w * 0.42 };
-          const heroPad: Pad = narrow ? { top: 0, bottom: h * 0.55, left: 0 } : { top: 0, bottom: 0, left: w * 0.4 };
-          const mix = (x: Pad, y: Pad, t: number): Pad => ({
-            top: x.top + (y.top - x.top) * t,
-            bottom: x.bottom + (y.bottom - x.bottom) * t,
-            left: x.left + (y.left - x.left) * t,
+          const h = m.getContainer().clientHeight;
+          const heroPad: Pad = nn ? { top: 0, bottom: h * 0.5, left: 0 } : { top: 0, bottom: 0, left: w * 0.38 };
+          const ridePad: Pad = nn ? { top: 0, bottom: h * 0.42, left: 0 } : { top: h * 0.22, bottom: 0, left: w * 0.12 };
+          const endPad: Pad = nn ? { top: 0, bottom: h * 0.5, left: 0 } : { top: h * 0.1, bottom: 0, left: w * 0.42 };
+          const mix = (a: Pad, b: Pad, t: number): Pad => ({
+            top: a.top + (b.top - a.top) * t,
+            bottom: a.bottom + (b.bottom - a.bottom) * t,
+            left: a.left + (b.left - a.left) * t,
           });
-          const pad = mix(mix(heroPad, ridePad, lift), endPad, arrive);
-          const lon = overviewCenter[0] + (bus[0] - overviewCenter[0]) * lift;
-          const lat = overviewCenter[1] + (bus[1] - overviewCenter[1]) * lift;
-          return { lon, lat, zoom, pitch, bearing, pad, meters, bus };
+          const heading = headingAt(path, meters) - 35 * arrive;
+          return {
+            lon: overview[0] + (busAt[0] - overview[0]) * lift,
+            lat: overview[1] + (busAt[1] - overview[1]) * lift,
+            zoom: OVERVIEW.zoom + (ride.zoom - OVERVIEW.zoom) * lift + 0.5 * arrive,
+            pitch: OVERVIEW.pitch + (ride.pitch - OVERVIEW.pitch) * lift - 6 * arrive,
+            bearing: OVERVIEW.bearing + angleDelta(OVERVIEW.bearing, heading) * lift,
+            pad: mix(mix(heroPad, ridePad, lift), endPad, arrive),
+            meters,
+            bus: busAt,
+          };
         };
 
-        let elevation = 0;
-        const frame = () => {
-          raf = 0;
-          const t = target(progressRef.current);
-          const k = reduced ? 1 : 0.11;
+        const cam: Cam = (({ lon, lat, zoom, pitch, bearing, pad }) => ({ lon, lat, zoom, pitch, bearing, pad }))(target(progress()));
+        let lastTime = 0;
+        let lastMeters = -1;
+        let passed = -1;
+
+        onFrame = (now, p) => {
+          const t = target(p);
+          const dt = lastTime ? Math.min(now - lastTime, 64) : 16;
+          lastTime = now;
+          // Native scroll (and snapping) is already smooth; a short ease only hides wheel steps.
+          const k = reduced ? 1 : 1 - Math.exp(-dt / 70);
           cam.lon += (t.lon - cam.lon) * k;
           cam.lat += (t.lat - cam.lat) * k;
           cam.zoom += (t.zoom - cam.zoom) * k;
           cam.pitch += (t.pitch - cam.pitch) * k;
-          cam.bearing += angleDelta(cam.bearing, t.bearing) * k * 0.8;
+          cam.bearing += angleDelta(cam.bearing, t.bearing) * k;
           cam.pad = {
             top: cam.pad.top + (t.pad.top - cam.pad.top) * k,
             bottom: cam.pad.bottom + (t.pad.bottom - cam.pad.bottom) * k,
             left: cam.pad.left + (t.pad.left - cam.pad.left) * k,
           };
-          // Ankara sits ~900 m up: aim at the ground, not at sea level under it.
-          const ground = m.queryTerrainElevation([cam.lon, cam.lat]);
-          const groundGap = ground === null ? 0 : ground - elevation;
-          if (ground !== null) elevation += groundGap * (elevation === 0 ? 1 : 0.2);
-          m.jumpTo({
-            center: [cam.lon, cam.lat],
-            zoom: cam.zoom,
-            pitch: cam.pitch,
-            bearing: cam.bearing,
-            elevation,
-            padding: { ...cam.pad, right: 0 },
-          });
-          busMarker.setLngLat(t.bus);
+          m.jumpTo({ center: [cam.lon, cam.lat], zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing, padding: { ...cam.pad, right: 0 } });
+          bus.setLngLat(t.bus);
 
-          if (Math.abs(t.meters - lastDone) > 0.5) {
-            lastDone = t.meters;
-            (m.getSource("route-done") as GeoJSONSource).setData(line(sliceTo(path, t.meters)));
-            const nowPassed = route.stops.filter((s) => s.meters <= t.meters + 1).length - 1;
+          if (Math.abs(t.meters - lastMeters) > 2) {
+            lastMeters = t.meters;
+            const frac = t.meters / path.length;
+            m.setPaintProperty("gg-route-done", "line-gradient", reveal(frac, DONE));
+            m.setPaintProperty("gg-route-glow", "line-gradient", reveal(frac, GOLD));
+            const nowPassed = overlayState(route.stops, t.meters).passed;
             if (nowPassed !== passed) {
-              route.stops.forEach((_, i) => m.setFeatureState({ source: "stops", id: i }, { passed: i <= nowPassed }));
+              const from = Math.min(passed, nowPassed) + 1;
+              const to = Math.max(passed, nowPassed);
+              for (let i = Math.max(from, 0); i <= to; i++) m.setFeatureState({ source: "stops", id: i }, { passed: i <= nowPassed });
               passed = nowPassed;
             }
           }
-          const settled =
-            Math.abs(t.lon - cam.lon) < 1e-7 &&
-            Math.abs(groundGap) < 1 &&
-            Math.abs(t.pad.left - cam.pad.left) < 0.5 &&
-            Math.abs(t.pad.bottom - cam.pad.bottom) < 0.5 &&
-            Math.abs(t.lat - cam.lat) < 1e-7 &&
-            Math.abs(t.zoom - cam.zoom) < 1e-3 &&
-            Math.abs(angleDelta(cam.bearing, t.bearing)) < 0.05;
-          if (!settled) raf = requestAnimationFrame(frame);
+          const moving =
+            Math.abs(t.lon - cam.lon) > 1e-7 ||
+            Math.abs(t.lat - cam.lat) > 1e-7 ||
+            Math.abs(t.zoom - cam.zoom) > 1e-3 ||
+            Math.abs(t.pitch - cam.pitch) > 1e-2 ||
+            Math.abs(angleDelta(cam.bearing, t.bearing)) > 0.02 ||
+            Math.abs(t.pad.left - cam.pad.left) > 0.5 ||
+            Math.abs(t.pad.bottom - cam.pad.bottom) > 0.5;
+          if (!moving) lastTime = 0;
+          return moving;
         };
-        const kick = () => {
-          if (!raf) raf = requestAnimationFrame(frame);
-        };
-        window.addEventListener("scroll", kick, { passive: true });
-        window.addEventListener("resize", kick);
-        // Terrain tiles arrive after the first frames; re-aim once they do.
-        m.on("sourcedata", (e) => e.sourceId === "dem" && kick());
-        m.once("remove", () => {
-          window.removeEventListener("scroll", kick);
-          window.removeEventListener("resize", kick);
-        });
-        // Snap straight to where the visitor already is (e.g. a reload mid-page).
-        const t0 = target(progressRef.current);
-        Object.assign(cam, { lon: t0.lon, lat: t0.lat, zoom: t0.zoom, pitch: t0.pitch, bearing: t0.bearing, pad: t0.pad });
         kick();
-        // Fade the map in once tiles are drawn, or after a short wait on slow connections.
-        const reveal = () => !disposed && setMapReady(true);
-        m.once("idle", reveal);
-        setTimeout(reveal, 1800);
+        const show = () => !disposed && root.setAttribute("data-map", "ready");
+        m.once("idle", show);
+        setTimeout(show, 1500);
       });
-    })();
+    };
+
+    // The map is decoration: start it after the page has painted and the browser is idle.
+    const idle = (cb: () => void) => {
+      if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(cb, { timeout: 1500 });
+      else setTimeout(cb, 300);
+    };
+    const begin = () => idle(() => void startMap());
+    if (document.readyState === "complete") begin();
+    else window.addEventListener("load", begin, { once: true });
 
     return () => {
       disposed = true;
       if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", kick);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("load", begin);
+      html.style.scrollSnapType = "";
       markers.forEach((mk) => mk.remove());
       map?.remove();
     };
-  }, [path, anchors, stepCount, route, text.steps]);
-
-  // Overlay state derived from the same progress the map uses.
-  const s = progress * (stepCount - 1);
-  const active = Math.min(Math.round(s), stepCount - 1);
-  const meters = metersForProgress(progress, anchors, 0.4);
-  const nextIndex = route.stops.findIndex((st) => st.meters > meters + 1);
-  const passedCount = nextIndex === -1 ? route.stops.length : nextIndex;
-  const nowMinute =
-    nextIndex <= 0
-      ? route.stops[Math.max(passedCount - 1, 0)].minute
-      : (() => {
-          const a = route.stops[nextIndex - 1];
-          const b = route.stops[nextIndex];
-          return a.minute + ((b.minute - a.minute) * (meters - a.meters)) / Math.max(b.meters - a.meters, 1);
-        })();
-  const left = Math.max(0, Math.ceil(lastStop.minute - nowMinute));
-  // While the bus waits at a stop the chip names it; between stops it names the next one.
-  const atStop = route.stops.find((st) => Math.abs(st.meters - meters) < 15);
-  const chipName = atStop ? atStop.name : `→ ${nextIndex === -1 ? lastStop.name : route.stops[nextIndex].name}`;
+  }, [path, anchors, stepCount, route, text]);
 
   const scrollToStep = (i: number) => {
     const el = rootRef.current;
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.scrollY;
-    const total = el.offsetHeight - window.innerHeight;
-    window.scrollTo({ top: top + (total * i) / (stepCount - 1), behavior: "smooth" });
+    window.scrollTo({ top: top + i * window.innerHeight, behavior: "smooth" });
   };
-  const stepOfStop = (stopIndex: number) => {
-    const found = text.steps.findIndex((st, i) => i > 0 && st.stop === stopIndex);
-    return found;
+  const stepOfStop = (stopIndex: number) => text.steps.findIndex((st, i) => i > 0 && st.stop === stopIndex);
+  const hidden = { opacity: 0, visibility: "hidden" as const, transform: "translate3d(0, 28px, 0)" };
+  const cardRef = (i: number) => (el: HTMLDivElement | null) => {
+    cardRefs.current[i] = el;
   };
 
   return (
-    <section
-      ref={rootRef}
-      className="rs"
-      style={{ height: `${stepCount * 100}svh` }}
-      data-step={active}
-      data-map={mapReady ? "ready" : "loading"}
-    >
+    <section ref={rootRef} className="rs" style={{ height: `${stepCount * 100}svh` }} data-step="0">
       <div className="rs-stage">
         <div className="rs-sky" aria-hidden="true" />
         <div ref={mapEl} className="rs-map" aria-hidden="true" />
         <div className="rs-vignette" aria-hidden="true" />
+        <div className="rs-hero-scrim" aria-hidden="true" />
 
-        <div className={`rs-chip ${active > 0 ? "is-on" : ""}`} aria-hidden="true">
+        <div ref={chipRef} className="rs-chip" aria-hidden="true">
           <span className="rs-chip-line">{route.line}</span>
           <span className="rs-chip-text">
-            <strong>{chipName}</strong>
-            <small>
-              {left > 0 ? text.minutesLeft.replace("{n}", String(left)) : text.arrived}
-            </small>
+            <strong ref={chipName}>{route.stops[0].name}</strong>
+            <small ref={chipLeft}>{text.minutesLeft.replace("{n}", String(route.stops[route.stops.length - 1].minute))}</small>
           </span>
         </div>
 
         <ol className="rs-rail" aria-hidden="true">
-          {text.rail.map((i) => {
-            const st = route.stops[i];
-            const isPassed = st.meters <= meters + 1;
-            const isCurrent = i === route.stops.findLastIndex((x) => x.meters <= meters + 1);
-            const target = stepOfStop(i);
+          {text.rail.map((stopIndex, k) => {
+            const st = route.stops[stopIndex];
+            const target = stepOfStop(stopIndex);
             return (
-              <li key={st.id} className={`${isPassed ? "is-passed" : ""} ${isCurrent ? "is-current" : ""}`}>
+              <li
+                key={st.id}
+                ref={(el) => {
+                  railRefs.current[k] = el;
+                }}
+                className={stopIndex === 0 ? "is-passed is-current" : ""}
+              >
                 <button type="button" tabIndex={-1} onClick={() => target > 0 && scrollToStep(target)} disabled={target <= 0}>
                   <span className="rs-rail-name">{st.name}</span>
                   <span className="rs-rail-dot" />
@@ -385,19 +459,14 @@ export default function RideStory({ route, text, appWebUrl, androidUrl, useWeb, 
         </ol>
 
         <div className="rs-progress" aria-hidden="true">
-          <span style={{ transform: `scaleX(${progress})` }} />
+          <span ref={barRef} />
         </div>
-      </div>
 
-      <div className="rs-steps">
         {text.steps.map((step, i) => {
-          const dist = Math.abs(s - i);
-          const visible = clamp01(1 - dist * 1.6);
-          const style = { opacity: visible, transform: `translateY(${(s - i) * -40}px)` };
           if (step.overview) {
             return (
-              <div key={i} className="rs-step rs-hero">
-                <div className="rs-hero-inner" style={style}>
+              <div key={i} ref={cardRef(i)} className="rs-scene rs-hero">
+                <div className="rs-hero-inner">
                   <p className="rs-kicker">{step.kicker}</p>
                   <h1 className="rs-headline">
                     {text.headline[0]}
@@ -418,8 +487,8 @@ export default function RideStory({ route, text, appWebUrl, androidUrl, useWeb, 
           }
           if (i === stepCount - 1) {
             return (
-              <div key={i} className="rs-step rs-final">
-                <div className="rs-card" style={style}>
+              <div key={i} ref={cardRef(i)} className="rs-scene rs-final" style={hidden}>
+                <div className="rs-card">
                   <div className="rs-card-top">
                     <span className="rs-card-eyebrow">{text.stopLabel}</span>
                     <span className="rs-chip-line">{route.line}</span>
@@ -436,8 +505,8 @@ export default function RideStory({ route, text, appWebUrl, androidUrl, useWeb, 
             );
           }
           return (
-            <div key={i} className={`rs-step ${i % 2 ? "rs-left" : "rs-right"}`}>
-              <div className="rs-copy" style={style}>
+            <div key={i} ref={cardRef(i)} className="rs-scene rs-chapter" style={hidden}>
+              <div className="rs-copy">
                 {step.feature && <p className="rs-feature">{step.feature}</p>}
                 <h2>{step.title}</h2>
                 <p>{step.body}</p>
@@ -447,6 +516,13 @@ export default function RideStory({ route, text, appWebUrl, androidUrl, useWeb, 
             </div>
           );
         })}
+      </div>
+
+      {/* One full-screen snap point per chapter: a single wheel turn or swipe moves one chapter. */}
+      <div className="rs-snaps" aria-hidden="true">
+        {text.steps.map((_, i) => (
+          <div key={i} className="rs-snap" />
+        ))}
       </div>
     </section>
   );

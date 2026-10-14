@@ -1,6 +1,9 @@
 export const APP_WEB_URL = "https://rehagorkemeyler.github.io/GitGel/";
-// TODO(W5): replace with the Play Store link once published.
-export const APP_ANDROID_URL = "https://github.com/rehagorkemeyler/gitgel-native/releases/latest";
+// Direct APK download (no page in between). gitgel-native is private, so the APK
+// is published as a release asset of a public repo; see docs/GORKEM-TODO.md.
+export const APP_ANDROID_URL =
+  process.env.NEXT_PUBLIC_ANDROID_APK_URL ??
+  "https://github.com/rehagorkemeyler/gitgel-releases/releases/latest/download/GitGel.apk";
 
 export const ALL_LANGS = ["tr", "en", "ru", "de", "ar", "fa"] as const;
 export type Lang = (typeof ALL_LANGS)[number];
@@ -23,3 +26,6 @@ export function dirOf(lang: Lang): "rtl" | "ltr" {
 }
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gitgel-site.vercel.app";
+
+/** The PWA opened in a given city (the PWA reads `?city=`; see docs/GORKEM-TODO.md). */
+export const appCityUrl = (city: City) => `${APP_WEB_URL}?city=${city}`;

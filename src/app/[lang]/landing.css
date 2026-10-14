@@ -22,25 +22,24 @@
 
 /* Top bar */
 .lp-top {
-  position: fixed; inset: 0 0 auto 0; z-index: 30;
+  position: fixed; z-index: 30; top: max(10px, env(safe-area-inset-top)); left: 50%;
+  width: min(calc(100% - 20px), 72rem); transform: translateX(-50%);
   display: flex; align-items: center; justify-content: space-between;
-  padding: max(14px, env(safe-area-inset-top)) clamp(16px, 3vw, 32px) 14px;
-  pointer-events: none;
+  padding: 8px 8px 8px 14px; border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)), rgba(10, 15, 28, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.04), 0 10px 30px -12px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(14px) saturate(1.8); -webkit-backdrop-filter: blur(14px) saturate(1.8);
 }
-.lp-top > * { pointer-events: auto; }
 .lp-logo {
   display: inline-flex; align-items: center; gap: 10px;
   font-family: var(--display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.02em;
   text-decoration: none;
 }
-.lp-logo-mark { color: #fff; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.5)); }
-.lp-nav {
-  display: flex; gap: 4px; padding: 4px; border-radius: 999px;
-  background: var(--glass); border: 1px solid var(--glass-line);
-  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-}
+.lp-logo-mark { color: #fff; }
+.lp-nav { display: flex; gap: 2px; padding: 3px; border-radius: 14px; background: rgba(255, 255, 255, 0.06); }
 .lp-nav a {
-  padding: 6px 11px; border-radius: 999px; font-size: 0.78rem; font-weight: 700;
+  padding: 6px 11px; border-radius: 11px; font-size: 0.78rem; font-weight: 700;
   letter-spacing: 0.04em; text-decoration: none; color: var(--text-dim);
 }
 .lp-nav a.is-on { background: var(--text); color: var(--ink); }
@@ -64,15 +63,17 @@
 .rs-vignette {
   position: absolute; inset: 0; pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(10, 15, 28, 0.55) 0%, transparent 22%, transparent 62%, rgba(10, 15, 28, 0.85) 100%),
+    linear-gradient(180deg, rgba(246, 150, 88, 0.42) 0%, rgba(214, 112, 76, 0.16) 14%, transparent 30%),
+    linear-gradient(180deg, transparent 60%, rgba(10, 15, 28, 0.85) 100%),
     radial-gradient(140% 90% at 50% 50%, transparent 55%, rgba(5, 8, 15, 0.55) 100%);
 }
-.rs[data-step="0"] .rs-vignette {
-  background:
-    linear-gradient(90deg, rgba(10, 15, 28, 0.82) 0%, rgba(10, 15, 28, 0.35) 45%, transparent 70%),
-    linear-gradient(180deg, rgba(10, 15, 28, 0.5) 0%, transparent 25%, transparent 60%, rgba(10, 15, 28, 0.9) 100%);
+/* MapLibre writes marker opacity inline, so labels are hidden on the opening shot with visibility */
+.rs[data-step="0"] .rs-label { visibility: hidden; }
+.rs-hero-scrim {
+  position: absolute; inset: 0; pointer-events: none; transition: opacity 0.5s ease;
+  background: linear-gradient(90deg, rgba(10, 15, 28, 0.82) 0%, rgba(10, 15, 28, 0.35) 45%, transparent 70%);
 }
-.rs-vignette { transition: background 0.8s ease; }
+.rs:not([data-step="0"]) .rs-hero-scrim { opacity: 0; }
 
 /* MapLibre bits */
 .rs-map .maplibregl-ctrl-attrib { background: rgba(10, 15, 28, 0.6); color: var(--text-dim); font-size: 10px; }
@@ -108,12 +109,12 @@
 @keyframes rs-pulse { from { transform: scale(0.4); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
 
 /* Trip chip at the top */
+/* Not blurred: a backdrop blur over a WebGL canvas is recomputed every frame */
 .rs-chip {
-  position: absolute; z-index: 5; top: max(70px, calc(env(safe-area-inset-top) + 64px)); left: 50%;
+  position: absolute; z-index: 5; top: max(84px, calc(env(safe-area-inset-top) + 76px)); left: 50%;
   display: flex; align-items: center; gap: 10px;
   padding: 7px 14px 7px 7px; border-radius: 16px;
-  background: var(--glass); border: 1px solid var(--glass-line);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  background: rgba(12, 17, 31, 0.82); border: 1px solid var(--glass-line);
   box-shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.9);
   transform: translate(-50%, -12px); opacity: 0;
   transition: opacity 0.5s ease, transform 0.5s ease;
@@ -165,16 +166,19 @@
 [dir="rtl"] .rs-progress span { transform-origin: right; }
 
 /* Steps scroll over the sticky stage */
-.rs-steps { position: relative; z-index: 10; margin-top: -100svh; pointer-events: none; }
-.rs-step {
-  height: 100svh; display: flex; align-items: flex-end;
+/* Chapters live inside the sticky stage and only fade; the page scrolls over empty snap points */
+.rs-scene {
+  position: absolute; inset: 0; z-index: 10; display: flex; align-items: flex-end;
   padding: 0 clamp(16px, 5vw, 72px) clamp(56px, 12vh, 120px);
+  pointer-events: none; will-change: opacity, transform;
 }
-.rs-step > * { pointer-events: auto; will-change: opacity, transform; }
-.rs-right { justify-content: flex-start; }
-.rs-left { justify-content: flex-start; }
+.rs-scene > * { pointer-events: auto; }
+.rs-snaps { position: relative; margin-top: -100svh; pointer-events: none; }
+.rs-snap { height: 100svh; scroll-snap-align: start; scroll-snap-stop: always; }
+html:has(.rs-snaps) { scroll-snap-type: y mandatory; }
+.lp-rest { scroll-snap-align: start; }
 
-.rs-hero { align-items: center; padding-top: 80px; }
+.rs-hero { align-items: center; padding-top: 90px; }
 .rs-hero-inner { max-width: 40rem; }
 .rs-kicker {
   display: inline-flex; align-items: center; gap: 8px; margin: 0 0 14px;
@@ -203,7 +207,7 @@
 .rs-btn:hover { transform: translateY(-2px); }
 .rs-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 .rs-btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-2)); color: #1a1205 !important; box-shadow: 0 14px 34px -12px rgba(255, 150, 50, 0.85); }
-.rs-btn-glass { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.rs-btn-glass { background: rgba(18, 24, 40, 0.7); border: 1px solid rgba(255, 255, 255, 0.18); }
 .rs-btn-glass:hover { background: rgba(255, 255, 255, 0.14); }
 .rs-btn-dark { background: #14110c; color: #fbf6ea !important; }
 .rs-hint { display: flex; align-items: center; gap: 12px; margin: 40px 0 0; color: var(--text-dim); font-size: 0.85rem; }
@@ -216,8 +220,7 @@
 
 .rs-copy {
   max-width: 30rem; padding: 26px 28px; border-radius: 22px;
-  background: var(--glass); border: 1px solid var(--glass-line);
-  backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  background: rgba(12, 17, 31, 0.86); border: 1px solid var(--glass-line);
   box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.9);
 }
 .rs-copy h2 {
@@ -261,18 +264,25 @@
   display: inline-flex; align-items: center; gap: 7px; margin-bottom: 10px;
   font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; color: var(--mint);
 }
-.lp-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 0 rgba(62, 201, 154, 0.7); animation: lp-blink 1.8s infinite; }
-@keyframes lp-blink { 0% { box-shadow: 0 0 0 0 rgba(62, 201, 154, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(62, 201, 154, 0); } 100% { box-shadow: 0 0 0 0 rgba(62, 201, 154, 0); } }
+.lp-live i, .rs-live-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--mint); }
+/* Pulses use transform and opacity only, so they never repaint or relayout the page */
+.lp-live i::after, .rs-live-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: lp-blink 1.8s ease-out infinite; }
+@keyframes lp-blink { from { transform: scale(1); opacity: 0.7; } 70%, to { transform: scale(2.6); opacity: 0; } }
 .lp-metro { position: relative; height: 64px; margin: 0 0 14px; }
 .lp-metro-track { position: absolute; left: 4%; right: 4%; top: 50%; height: 4px; margin-top: -2px; border-radius: 4px; background: linear-gradient(90deg, #e63946, #ff6b6b); opacity: 0.7; }
 .lp-metro-station { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--ink); border: 3px solid #ff6b6b; }
+/* The train element spans the travel distance and slides by its own width (transform only) */
 .lp-metro-train {
-  position: absolute; top: 50%; left: 4%; width: 30px; height: 14px; margin-top: -7px; border-radius: 7px;
-  background: #fff; box-shadow: 0 0 16px 3px rgba(255, 255, 255, 0.45);
+  position: absolute; top: 50%; left: 4%; width: calc(92% - 30px); height: 14px; margin-top: -7px;
   animation: lp-train 7s cubic-bezier(0.5, 0, 0.5, 1) infinite alternate;
 }
-.lp-metro-train-b { animation-delay: -3.5s; background: var(--mint); box-shadow: 0 0 16px 3px rgba(62, 201, 154, 0.55); }
-@keyframes lp-train { from { left: 4%; } to { left: calc(96% - 30px); } }
+.lp-metro-train::before {
+  content: ""; position: absolute; left: 0; top: 0; width: 30px; height: 14px; border-radius: 7px;
+  background: #fff; box-shadow: 0 0 16px 3px rgba(255, 255, 255, 0.45);
+}
+.lp-metro-train-b { animation-delay: -3.5s; }
+.lp-metro-train-b::before { background: var(--mint); box-shadow: 0 0 16px 3px rgba(62, 201, 154, 0.55); }
+@keyframes lp-train { from { transform: translateX(0); } to { transform: translateX(100%); } }
 .lp-times { display: flex; gap: 8px; margin: 0 0 14px; }
 .lp-times span {
   padding: 10px 14px; border-radius: 12px; font: 800 1.5rem/1 var(--display);
@@ -333,23 +343,32 @@
 
 /* Phones: text at the bottom, compact rail, smaller chip */
 @media (max-width: 760px) {
-  .rs-step { padding-bottom: max(28px, env(safe-area-inset-bottom)); align-items: flex-end; }
-  .rs-hero { align-items: flex-end; padding-bottom: 48px; }
+  .rs-scene { padding-bottom: max(28px, env(safe-area-inset-bottom)); }
+  .rs-hero { align-items: flex-end; padding: 0; }
+  /* Phones: the headline sits on a frosted panel so map details never run through it.
+     Only this panel blurs, and only while the opening shot is still. */
+  .rs-hero-inner {
+    width: 100%; padding: 28px 16px max(24px, env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(10, 15, 28, 0.35), rgba(10, 15, 28, 0.88) 30%, rgba(10, 15, 28, 0.96));
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px 24px 0 0;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
   .rs-copy { padding: 20px; border-radius: 18px; }
-  .rs-rail { top: auto; bottom: auto; top: 128px; transform: none; gap: 0; }
+  .rs-rail { top: 136px; transform: none; gap: 0; }
   .rs-rail-name { display: none; }
   .rs-rail .is-current .rs-rail-name { display: inline; }
   .rs-rail-dot { width: 11px; height: 11px; }
   .rs-rail::before { inset-inline-end: 4.5px; }
-  .rs-chip { top: 64px; }
+  .rs-chip { top: 76px; }
   .rs-final { align-items: flex-end; }
   .lp-nav .lp-nav-link { display: none; }
   .rs-hint { margin-top: 24px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rs-bus-pulse, .rs-mouse::after, .lp-live i, .lp-metro-train { animation: none; }
-  .lp-metro-train-b { left: 60%; }
+  .rs-bus-pulse, .rs-mouse::after, .lp-live i::after, .rs-live-dot::after, .lp-metro-train { animation: none; }
+  .lp-metro-train-b { transform: translateX(60%); }
   .rs-btn, .lp-city, .rs-map, .rs-chip { transition: none; }
 }
 
@@ -373,7 +392,6 @@
 .rs-demo-grow { flex: 1; }
 .rs-demo .rs-chip-line { min-width: 52px; font-size: 0.8rem; padding: 4px 8px; }
 .rs-chip-metro { background: #e63946; color: #fff; }
-.rs-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); animation: lp-blink 1.8s infinite; }
 .rs-demo-route { grid-template-columns: 1fr auto 1fr; align-items: center; }
 .rs-demo-route div { display: grid; min-width: 0; }
 .rs-demo-route div:last-child { text-align: end; }
@@ -384,8 +402,9 @@
 .rs-demo-track::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 3px; border-radius: 3px; background: #e63946; opacity: 0.7; }
 .rs-demo-track span { position: absolute; top: 3px; width: 9px; height: 9px; border-radius: 50%; background: var(--ink); border: 2px solid #ff6b6b; }
 .rs-demo-track span:nth-child(1) { left: 0; } .rs-demo-track span:nth-child(2) { left: calc(50% - 4px); } .rs-demo-track span:nth-child(3) { right: 0; }
-.rs-demo-track i { position: absolute; top: 2px; left: 10%; width: 22px; height: 11px; border-radius: 6px; background: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, 0.6); animation: rs-train 4s ease-in-out infinite alternate; }
-@keyframes rs-train { to { left: calc(100% - 22px); } }
+.rs-demo-track i { position: absolute; top: 2px; left: 0; width: calc(100% - 22px); height: 11px; animation: rs-train 4s ease-in-out infinite alternate; }
+.rs-demo-track i::before { content: ""; position: absolute; left: 0; top: 0; width: 22px; height: 11px; border-radius: 6px; background: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, 0.6); }
+@keyframes rs-train { from { transform: translateX(10%); } to { transform: translateX(100%); } }
 .rs-demo-alert { color: var(--gold) !important; }
 .rs-demo-alert::before { content: "🔔 "; }
 .rs-demo-bar { height: 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
@@ -399,5 +418,10 @@
   .rs-demo { display: none; }
   .rs-copy .rs-where { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .rs-live-dot, .rs-demo-track i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .rs-demo-track i { animation: none; } }
 @media (min-width: 900px) { .lp-grid { grid-template-columns: repeat(3, 1fr); } }
+.lp-footer-links { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 !important; }
+.lp-footer-links a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--glass-line); }
+.lp-footer-links a:hover { border-color: var(--gold); }
+@media (max-width: 760px) { .rs-hero-scrim { display: none; } }
+@media (max-width: 760px) { .rs[data-step="0"] .rs-rail { visibility: hidden; } }

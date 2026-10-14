@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import { notFound } from "next/navigation";
+import { preconnect } from "react-dom";
 import RideStory from "@/components/RideStory";
 import routeJson from "@/content/landing-route.json";
-import { APP_ANDROID_URL, APP_WEB_URL, CITIES, ENABLED_LANGS, isEnabledLang, type City } from "@/lib/config";
+import { APP_ANDROID_URL, APP_WEB_URL, CITIES, appCityUrl, ENABLED_LANGS, isEnabledLang, type City } from "@/lib/config";
 import { getLines, getStops } from "@/lib/data";
 import { landingText, type RideRoute } from "@/lib/landing";
 import { getStrings } from "@/lib/strings";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./landing.css";
 
-const display = Bricolage_Grotesque({ subsets: ["latin", "latin-ext"], weight: ["600", "800"], variable: "--font-display" });
+const display = Bricolage_Grotesque({ subsets: ["latin", "latin-ext"], weight: ["800"], variable: "--font-display" });
 
 export const revalidate = 86400;
 
@@ -69,6 +70,7 @@ const FEATURE_ICONS = [
 export default async function Home({ params }: Props) {
   const { lang } = await params;
   if (!isEnabledLang(lang)) notFound();
+  preconnect("https://tiles.openfreemap.org", { crossOrigin: "anonymous" });
   const t = getStrings(lang);
   const l = landingText(lang, route);
   const counts = await cityCounts();
@@ -111,6 +113,7 @@ export default async function Home({ params }: Props) {
         androidDownload={t.androidDownload}
       />
 
+      <div className="lp-rest">
       <section className="lp-section" aria-labelledby="lp-features">
         <h2 id="lp-features" className="lp-h2">{l.sectionFeatures}</h2>
         <div className="lp-grid">
@@ -141,7 +144,7 @@ export default async function Home({ params }: Props) {
             const c = counts[city];
             return (
               <li key={city}>
-                <a className={`lp-city lp-city-${CITY_ART[city].hue}`} href={`/${lang}/${city}`}>
+                <a className={`lp-city lp-city-${CITY_ART[city].hue}`} href={appCityUrl(city)}>
                   <span className="lp-city-name">{t.cities[city]}</span>
                   <span className="lp-city-note">{CITY_ART[city].note[noteLang]}</span>
                   {c && (
@@ -176,10 +179,19 @@ export default async function Home({ params }: Props) {
       <footer className="lp-footer">
         <p>{t.pitch}</p>
         <p>{t.disclaimer}</p>
+        <p className="lp-footer-links">
+          {CITIES.map((city) => (
+            <a key={city} href={`/${lang}/${city}`}>
+              {lang === "tr" ? `${t.cities[city]} hatları ve durakları` : `${t.cities[city]} lines and stops`}
+            </a>
+          ))}
+          <a href={`/${lang}/guides`}>{l.guides}</a>
+        </p>
         <p className="lp-credits">
-          {lang === "tr" ? "Harita" : "Map"}: © OpenStreetMap, OpenFreeMap, OpenMapTiles · {lang === "tr" ? "Yükselti" : "Elevation"}: Mapzen Terrain Tiles (AWS) · {lang === "tr" ? "Rota" : "Route"}: OSRM
+          {lang === "tr" ? "Harita" : "Map"}: © OpenStreetMap, OpenFreeMap, OpenMapTiles · {lang === "tr" ? "Rota" : "Route"}: OSRM
         </p>
       </footer>
+      </div>
     </main>
   );
 }
