@@ -52,7 +52,7 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 ### Stage W0: skeleton and deploy
 - [x] Next.js (App Router, TypeScript strict), `/[lang]` routing built for all six languages (only tr, en enabled), `dir="rtl"` support for ar/fa
 - [x] Home page per language: short pitch, "Web'de kullan" (PWA link), Android download, city picker
-- [ ] Deployed on Vercel from the repo (Görkem connects it), `*.vercel.app` URL works
+- [x] Deployed on Vercel from the repo (Görkem connects it), `*.vercel.app` URL works
 **Sonuç:** İskelet hazır (Next 16, tr/en açık, ar/fa için rtl desteği, ana sayfa). Kalan: Vercel bağlantısı (Görkem, docs/GORKEM-TODO.md). Canlı adres: henüz yok.
 
 ### Stage W1: stop pages (the main traffic source)
@@ -92,4 +92,5 @@ cache (ISR, revalidate daily), prerender only the top few hundred. Sitemaps max 
 - [ ] Ankara guides first in ar, fa, ru (international students)
 
 ### Stage W7 (last, optional): scroll-ride landing
-- [ ] Varda-style scroll story on MapLibre (OpenFreeMap + AWS terrain, no paid imagery), e.g. Kadıköy-Eminönü ferry
+- [x] Varda-style scroll story on MapLibre (OpenFreeMap + AWS terrain, no paid imagery), e.g. Kadıköy-Eminönü ferry
+**Sonuç:** Ana sayfa (`/tr`, `/en`) kaydırmalı hikâyeye dönüştü: MapLibre 3B harita (OpenFreeMap dark, AWS arazi, 3B binalar, gün batımı göğü), Ankara 413 hattı Altınpark'tan Atakule'ye kaydırdıkça ilerliyor. Her durakta bir özellik anlatılıyor (canlı otobüs, yol tarifi, canlı metro takibi, yolculuk takibi) ve küçük uygulama arayüzü örneği var; sonda "Vardın" kartı ve uygulama butonları. Altında özellik ızgarası, şehir kartları (durak/hat sayıları veriden), rehberler. PWA logosu başlıkta ve favicon'da. Rota anlık görüntüsü `scripts/landing-route.mjs` ile yenilenir (PWA verisi + OSRM). Harita tembel yüklenir, metin önce gelir; hareket azaltma tercihine uyar; mobilde ayrı yerleşim. Kalan: yok. Canlı: https://gitgel-site.vercel.app/tr
