@@ -30,7 +30,6 @@
 4. Kontrol: yukarıdaki adresi gizli sekmede aç; sayfa açılmadan APK inmeye başlamalı. Yeni sürümde 2-3. adımı tekrarla; link hep en son sürümü indirir.
 (Farklı bir adres kullanmak istersen: Vercel > gitgel-site > Settings > Environment Variables > `NEXT_PUBLIC_ANDROID_APK_URL` = adres > Redeploy.)
 
-**B) "Şehrini seç" kartları PWA'yı o şehirde açsın.** Kartlar artık `https://rehagorkemeyler.github.io/GitGel/?city=ankara` gibi adreslere gidiyor, ama PWA şu an şehri yalnızca tarayıcı hafızasından (`gg-city`) okuyor; `?city=` parametresini görmezden geliyor, yani PWA son seçilen şehirde açılıyor. Bu oturumun `GitGel` reposuna erişim izni olmadığı için düzeltemedim.
-1. `GitGel` (PWA) reposunda bir Claude oturumu aç ve şunu yaz: "Uygulama açılırken URL'de `?city=istanbul|ankara|bursa` varsa onu `gg-city` olarak localStorage'a yaz, parametreyi URL'den sil ve o şehirle başla."
-2. Yayınlandıktan sonra kontrol: `https://rehagorkemeyler.github.io/GitGel/?city=bursa` adresini aç; PWA Bursa haritasıyla açılmalı.
+**B) "Şehrini seç" kartları PWA'yı o şehirde açsın.** ✅ Yapıldı (14 Ekim): PWA artık `?city=` okuyor (GitGel reposu, `app/src/lib/city.ts`). Sadece kontrol et:
+1. PWA yayınlandıktan sonra (GitHub Actions bitince) `https://rehagorkemeyler.github.io/GitGel/?city=bursa` adresini aç; PWA Bursa haritasıyla açılmalı.
 (İstersen bu oturuma GitGel reposunu ekleme izni ver, ben yapayım.)
