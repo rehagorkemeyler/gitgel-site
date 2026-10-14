@@ -32,4 +32,3 @@
 
 **B) "Şehrini seç" kartları PWA'yı o şehirde açsın.** ✅ Yapıldı (14 Ekim): PWA artık `?city=` okuyor (GitGel reposu, `app/src/lib/city.ts`). Sadece kontrol et:
 1. PWA yayınlandıktan sonra (GitHub Actions bitince) `https://rehagorkemeyler.github.io/GitGel/?city=bursa` adresini aç; PWA Bursa haritasıyla açılmalı.
-(İstersen bu oturuma GitGel reposunu ekleme izni ver, ben yapayım.)
