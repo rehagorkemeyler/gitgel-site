@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CITIES, isEnabledLang } from "@/lib/config";
+import { AppCta, StickyAppBar } from "@/components/AppCta";
+import { APP_ANDROID_URL, APP_WEB_URL, CITIES, isEnabledLang } from "@/lib/config";
 import { GUIDES, copyFor } from "@/content/guides";
 import { guideUi } from "@/lib/guide-text";
 import { getStrings } from "@/lib/strings";
 import { alternatesFor } from "@/lib/urls";
+import "./guides.css";
 
 type Props = { params: Promise<{ lang: string }> };
 
@@ -25,21 +27,47 @@ export default async function GuidesIndex({ params }: Props) {
   const u = guideUi(lang);
   const s = getStrings(lang);
   return (
-    <main>
-      <nav className="muted"><a href={`/${lang}`}>{u.home}</a> › {u.guides}</nav>
-      <h1>{u.allGuides}</h1>
-      <p>{u.guidesIntro}</p>
-      {CITIES.map((city) => (
-        <section key={city}>
-          <h2>{s.cities[city]}</h2>
-          <ul>
-            {GUIDES.filter((g) => g.city === city).map((g) => (
-              <li key={g.slug}><a href={`/${lang}/guides/${g.slug}`}>{copyFor(g, lang).title}</a></li>
-            ))}
-          </ul>
-        </section>
-      ))}
-      <footer><p className="muted">{s.disclaimer}</p></footer>
+    <main className="g">
+      <nav className="g-crumbs" aria-label="Breadcrumb"><a href={`/${lang}`}>{u.home}</a> › <span>{u.guides}</span></nav>
+      <header className="g-hero city-ankara">
+        <h1>{u.allGuides}</h1>
+        <p className="g-hero-intro">{u.guidesIntro}</p>
+        <nav className="g-index-nav">
+          {CITIES.map((city) => (
+            <a key={city} href={`#${city}`} className={`g-chip city-${city}`}>{s.cities[city]}</a>
+          ))}
+        </nav>
+      </header>
+
+      <AppCta ui={u} webUrl={APP_WEB_URL} androidUrl={APP_ANDROID_URL} useWeb={s.useWeb} androidDownload={s.androidDownload} body={u.ctaBodyIndex} />
+
+      {CITIES.map((city) => {
+        const list = GUIDES.filter((g) => g.city === city);
+        return (
+          <section key={city} id={city} className={`city-${city}`}>
+            <div className="g-city-head">
+              <h2>{s.cities[city]}</h2>
+              <span className="muted">{list.length} {u.guidesCount}</span>
+            </div>
+            <ul className="g-cards">
+              {list.map((g) => {
+                const gc = copyFor(g, lang);
+                return (
+                  <li key={g.slug}>
+                    <a className="g-card" href={`/${lang}/guides/${g.slug}`}>
+                      <span className="g-card-title">{gc.title}</span>
+                      <span className="g-card-desc">{gc.description}</span>
+                      <span className="g-card-more">{u.readGuide} →</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+      <footer className="g-footer"><p className="muted">{s.disclaimer}</p></footer>
+      <StickyAppBar text={u.stickyText} webUrl={APP_WEB_URL} useWeb={s.useWeb} />
     </main>
   );
 }

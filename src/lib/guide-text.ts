@@ -6,6 +6,8 @@ export type GuideUi = {
   guides: string; allGuides: string; guidesIntro: string; numbersHeading: string; stopsHeading: string;
   updated: string; line: string; direction: string; weekday: string; duration: string; min: string; stopsCount: string;
   home: string; moreGuides: string; scheduleNote: string; night: string;
+  ctaKicker: string; ctaTitle: string; ctaBody: string; ctaBodyIndex: string; ctaPoints: string[]; ctaFree: string;
+  stickyText: string; midCtaTitle: string; readGuide: string; guidesCount: string;
 };
 
 const tr: GuideUi = {
@@ -15,6 +17,15 @@ const tr: GuideUi = {
   updated: "Güncelleme", line: "Hat", direction: "Yön", weekday: "Hafta içi ilk – son sefer", duration: "Süre", min: "dk",
   stopsCount: "durak", home: "Ana sayfa", moreGuides: "Diğer rehberler",
   scheduleNote: "Saatler tarifeye göredir, canlı konum değildir. İlk ve son sefer, hattın ilk durağından kalkışı gösterir.", night: "gece",
+  ctaKicker: "GitGel uygulaması",
+  ctaTitle: "Durağına gelen otobüsleri canlı takip et",
+  ctaBody: "Bu sayfadaki saatler tarifeye göre. GitGel'de ise otobüsler ve metrolar haritada canlı akar, durağına kaç dakika kaldığını tahmin etmezsin, görürsün.",
+  ctaBodyIndex: "Rehberlerdeki saatler tarifeye göre. GitGel'de ise otobüsler ve metrolar haritada canlı akar, durağına kaç dakika kaldığını tahmin etmezsin, görürsün.",
+  ctaPoints: ["Canlı otobüs ve metro konumu", "Kapıdan kapıya yol tarifi", "Yolculuk takibi: ineceğin durağı kaçırma"],
+  ctaFree: "Ücretsiz, reklamsız, kurulum gerekmez",
+  stickyText: "Otobüsün nerede? Canlı gör",
+  midCtaTitle: "Hattın şu an nerede olduğunu GitGel'de gör",
+  readGuide: "Rehberi oku", guidesCount: "rehber",
 };
 const en: GuideUi = {
   guides: "Guides", allGuides: "All guides",
@@ -23,6 +34,15 @@ const en: GuideUi = {
   updated: "Updated", line: "Line", direction: "Direction", weekday: "Weekday first – last service", duration: "Ride", min: "min",
   stopsCount: "stops", home: "Home", moreGuides: "More guides",
   scheduleNote: "Times follow the timetable; they are not live positions. First and last service show departures from the line's first stop.", night: "night",
+  ctaKicker: "The GitGel app",
+  ctaTitle: "Track the buses coming to your stop, live",
+  ctaBody: "The times on this page follow the timetable. In GitGel, buses and trains move on the map live, so you see how many minutes until yours arrives instead of guessing.",
+  ctaBodyIndex: "Times in the guides follow the timetable. In GitGel, buses and trains move on the map live, so you see how many minutes until yours arrives instead of guessing.",
+  ctaPoints: ["Live bus and metro positions", "Door-to-door directions", "Trip tracking so you never miss your stop"],
+  ctaFree: "Free, no ads, nothing to install",
+  stickyText: "Where is your bus? See it live",
+  midCtaTitle: "See where this line is right now in GitGel",
+  readGuide: "Read the guide", guidesCount: "guides",
 };
 export const guideUi = (lang: Lang): GuideUi => (lang === "tr" ? tr : en);
 
